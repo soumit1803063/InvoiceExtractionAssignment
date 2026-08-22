@@ -38,12 +38,13 @@ export interface RawResponse {
 
 export async function sendRequest(path: string, init?: RequestInit): Promise<RawResponse> {
   let response: Response;
+  const sendsJsonBody = init?.body !== undefined && !(init.body instanceof FormData);
   try {
     response = await fetch(buildApiUrl(path), {
       ...init,
       headers: {
         Accept: 'application/json',
-        ...(init?.body !== undefined ? { 'Content-Type': 'application/json; charset=utf-8' } : {}),
+        ...(sendsJsonBody ? { 'Content-Type': 'application/json; charset=utf-8' } : {}),
         ...init?.headers
       }
     });
