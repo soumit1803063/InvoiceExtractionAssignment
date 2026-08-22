@@ -159,6 +159,19 @@ class ErrorMessage(StrEnum):
     UNSUPPORTED_UPLOAD = "Only .pdf, .jpg, .jpeg and .png invoices are accepted"
 
 
+class RuleCode(StrEnum):
+    REQUIRED_FIELDS = "required_fields"
+    TAX_CODE_PRESENT = "tax_code_present"
+    TAX_CODE_KNOWN = "tax_code_known"
+    PARTNER_MATCHED = "partner_matched"
+    NOT_DUPLICATE = "not_duplicate"
+    DATE_ORDER = "date_order"
+    CROSSFOOT = "crossfoot"
+    TAX_RECOMPUTED = "tax_recomputed"
+    TOTAL_CONSISTENT = "total_consistent"
+    PRINTED_TOTAL = "printed_total"
+
+
 class DocumentStatus(StrEnum):
     PROCESSING = "processing"
     NEEDS_REVIEW = "needs_review"

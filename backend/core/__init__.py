@@ -33,6 +33,7 @@ from .models import (
     ResRegister,
     ResRegistrationReceipt,
     ResTaxRate,
+    RuleCode,
     SourceKind,
     TaxRateTable,
 )
@@ -73,6 +74,7 @@ __all__ = [
     "ResRegister",
     "ResRegistrationReceipt",
     "ResTaxRate",
+    "RuleCode",
     "SourceKind",
     "TaxRateTable",
     "Utils",
