@@ -10,19 +10,19 @@ from ...core import (
     DbVerification,
     DocumentStatus,
     ErrorMessage,
-    IDocumentRepository,
     MdRuleOutcome,
     RuleCode,
     TaxRateTable,
     Utils,
 )
+from ...repositories import DocumentRepository
 from ..accounting_service import ReferenceDataProvider
 
 
 class ValidationService:
 
     def __init__(
-        self, repository: IDocumentRepository, reference_data: ReferenceDataProvider
+        self, repository: DocumentRepository, reference_data: ReferenceDataProvider
     ) -> None:
         self._repository = repository
         self._reference_data = reference_data

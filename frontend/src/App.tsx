@@ -16,6 +16,7 @@ const REFRESH_INTERVAL_WHILE_READING = 2000;
 
 const NAV_LINKS = [
   { route: '/upload', word: 'upload' },
+  { route: '/reading', word: 'readingTab' },
   { route: '/queue', word: 'queue' },
   { route: '/logged', word: 'logged' }
 ] as const;
@@ -119,7 +120,7 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
         ) : (
           <QueuePage
             documents={documents}
-            tab={route === '/logged' ? 'logged' : 'queue'}
+            tab={route === '/logged' ? 'logged' : route === '/reading' ? 'reading' : 'queue'}
             isLoading={documentsResource.isLoading}
           />
         )}

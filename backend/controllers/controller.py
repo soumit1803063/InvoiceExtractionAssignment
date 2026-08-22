@@ -3,7 +3,6 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
-from ..container import ApplicationContainer
 from ..core import (
     DbDocument,
     ErrorMessage,
@@ -14,13 +13,13 @@ from ..core import (
     ResRegister,
     Utils,
 )
+from ..services.accounting_service import HttpAccountingGateway
+from ..services.document_service import InvoiceIntakeService
 from ..services.extraction import SUPPORTED_SUFFIXES
 
 
-def build_router(container: ApplicationContainer) -> APIRouter:
+def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -> APIRouter:
     router = APIRouter(prefix="/api")
-    intake = container.intake_service
-    gateway = container.accounting_gateway
 
     @router.get("/health", response_model=ResHealth)
     def read_health() -> ResHealth:

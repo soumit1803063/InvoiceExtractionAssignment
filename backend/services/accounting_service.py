@@ -9,7 +9,6 @@ from ..core import (
     ErrorCode,
     IntakeError,
     ErrorMessage,
-    IAccountingGateway,
     PartnerDirectory,
     ReqRegistration,
     ReqRegistrationLine,
@@ -92,7 +91,7 @@ class ReferenceDataProvider:
 
     def __init__(
         self,
-        gateway: IAccountingGateway,
+        gateway: "HttpAccountingGateway",
         cache_seconds: int = CACHE_SECONDS,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
@@ -105,7 +104,7 @@ class ReferenceDataProvider:
         self._fetched_at: Optional[float] = None
 
     @property
-    def gateway(self) -> IAccountingGateway:
+    def gateway(self) -> "HttpAccountingGateway":
         return self._gateway
 
     @property

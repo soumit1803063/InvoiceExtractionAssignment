@@ -60,11 +60,11 @@ class Transcribers:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def openrouter_inkling(self) -> MarkitdownTranscriber:
-        return MarkitdownTranscriber(self._settings, self._settings.openrouter_inkling)
+    def openrouter_gemma_31b(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_gemma_31b)
 
-    def openrouter_gemma(self) -> MarkitdownTranscriber:
-        return MarkitdownTranscriber(self._settings, self._settings.openrouter_gemma)
+    def openrouter_gemma_26b(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_gemma_26b)
 
     def openrouter_nemotron_omni(self) -> MarkitdownTranscriber:
         return MarkitdownTranscriber(self._settings, self._settings.openrouter_nemotron_omni)
@@ -75,12 +75,12 @@ class Transcribers:
     def plain(self) -> MarkitdownTranscriber:
         return MarkitdownTranscriber(self._settings)
 
-    def fallback_chain(self) -> tuple[MarkitdownTranscriber, ...]:
-        transcribers = []
-        if self._settings.openrouter_api_key:
-            transcribers.append(self.openrouter_inkling())
-            transcribers.append(self.openrouter_gemma())
-            transcribers.append(self.openrouter_nemotron_omni())
-            transcribers.append(self.openrouter_nemotron_vl())
-        transcribers.append(self.plain())
-        return tuple(transcribers)
+    def model_chain(self) -> tuple[MarkitdownTranscriber, ...]:
+        if not self._settings.openrouter_api_key:
+            return ()
+        return (
+            self.openrouter_gemma_31b(),
+            self.openrouter_nemotron_omni(),
+            self.openrouter_gemma_26b(),
+            self.openrouter_nemotron_vl(),
+        )

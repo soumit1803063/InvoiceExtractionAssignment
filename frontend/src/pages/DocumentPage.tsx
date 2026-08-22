@@ -63,7 +63,7 @@ export function DocumentPage({ document, documents, isLoading, onDocumentUpdated
         <button
           type="button"
           className="button button--ghost"
-          disabled={isReprocessing || document.status === 'processing'}
+          disabled={isReprocessing || document.status === 'processing' || document.status === 'registered'}
           onClick={reprocess}
         >
           {isReprocessing ? words.reprocessing : words.reprocess}

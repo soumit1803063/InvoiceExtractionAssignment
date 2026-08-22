@@ -5,24 +5,33 @@ import type { InvoiceDocument } from '../types/contract';
 
 interface QueuePageProps {
   documents: InvoiceDocument[];
-  tab: 'queue' | 'logged';
+  tab: 'reading' | 'queue' | 'logged';
   isLoading: boolean;
 }
 
 export function QueuePage({ documents, tab, isLoading }: QueuePageProps) {
   const words = useWords();
   const logged = documents.filter((candidate) => candidate.status === 'registered');
-  const queued = documents.filter((candidate) => candidate.status !== 'registered');
-  const visible = tab === 'logged' ? logged : queued;
-  const processingCount = queued.filter((candidate) => candidate.status === 'processing').length;
-  const passedCount = queued.filter(
-    (candidate) => candidate.status !== 'processing' && candidate.blocking_reasons.length === 0
-  ).length;
-  const failedCount = queued.length - processingCount - passedCount;
+  const readingNow = documents.filter((candidate) => candidate.status === 'processing');
+  const queued = documents.filter(
+    (candidate) => candidate.status !== 'registered' && candidate.status !== 'processing'
+  );
+  const visible = tab === 'logged' ? logged : tab === 'reading' ? readingNow : queued;
+  const passedCount = queued.filter((candidate) => candidate.blocking_reasons.length === 0).length;
+  const failedCount = queued.length - passedCount;
 
   return (
     <div className="page">
       <div className="queue-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'reading'}
+          className={`queue-tabs__tab${tab === 'reading' ? ' queue-tabs__tab--active' : ''}`}
+          onClick={() => navigateTo('/reading')}
+        >
+          {words.readingTab} <span className="queue-tabs__count">{readingNow.length}</span>
+        </button>
         <button
           type="button"
           role="tab"
@@ -48,7 +57,9 @@ export function QueuePage({ documents, tab, isLoading }: QueuePageProps) {
           <p className="app__queue-counts">
             {tab === 'logged'
               ? words.loggedIntoAccountingSystemThese
-              : `${processingCount > 0 ? `${processingCount} ${words.reading} · ` : ''}${passedCount} ${words.passed} · ${failedCount} ${words.failed}`}
+              : tab === 'reading'
+                ? `${readingNow.length} ${words.reading}`
+                : `${passedCount} ${words.passed} · ${failedCount} ${words.failed}`}
           </p>
         </div>
 
@@ -62,6 +73,11 @@ export function QueuePage({ documents, tab, isLoading }: QueuePageProps) {
                   {words.nothingLoggedYet}
                 </p>
                 <p>{words.invoicesAppearHereOnceAccounting}</p>
+              </>
+            ) : tab === 'reading' ? (
+              <>
+                <p className="app__placeholder-title">{words.nothingBeingReadNow}</p>
+                <p>{words.uploadedInvoicesAppearHereWhileRead}</p>
               </>
             ) : (
               <>

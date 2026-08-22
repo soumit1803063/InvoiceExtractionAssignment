@@ -61,14 +61,6 @@ from .responses import (
     ResTaxRate,
     TaxRateTable,
 )
-from .interfaces import (
-    IAccountingGateway,
-    IDocumentRepository,
-    IRepository,
-    ITranscriber,
-    TEntity,
-    TKey,
-)
 
 __all__ = [
     "AiInvoice",
@@ -86,10 +78,6 @@ __all__ = [
     "DocumentStatus",
     "ErrorCode",
     "ErrorMessage",
-    "IAccountingGateway",
-    "IDocumentRepository",
-    "IRepository",
-    "ITranscriber",
     "Identifier",
     "IntakeError",
     "IsoDate",
@@ -115,8 +103,6 @@ __all__ = [
     "ResTaxRate",
     "RuleCode",
     "SourceKind",
-    "TEntity",
-    "TKey",
     "TaxCode",
     "TaxRateTable",
     "coerce_amount",
