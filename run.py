@@ -1,95 +1,197 @@
+import os
+import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
+import venv
 from pathlib import Path
-
-import uvicorn
-
-from backend.core import ErrorCode, IntakeError, Utils
-from backend.controllers.controller import create_app
-from backend.services.accounting_service import HttpAccountingGateway
-from backend.services.extraction import SUPPORTED_SUFFIXES
-from backend.settings import Settings, SettingsLoader
+from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-ACCOUNTING_API_SCRIPT = "accounting_api.py"
+REQUIREMENTS_FILE = PROJECT_ROOT / "requirements.txt"
+VENV_DIRECTORY = PROJECT_ROOT / ".venv"
+ACCOUNTING_API_SCRIPT = PROJECT_ROOT / "accounting_api.py"
+ENVIRONMENT_FILE = PROJECT_ROOT / ".env"
+
+BOOTSTRAP_MARKER = "INVOICE_INTAKE_BOOTSTRAPPED"
+REQUIRED_PACKAGES = ("fastapi", "uvicorn", "pydantic_settings", "sqlmodel")
+MINIMUM_PYTHON = (3, 10)
+
+HEALTH_PATH = "/health"
+HEALTH_TIMEOUT_SECONDS = 30
+HEALTH_POLL_SECONDS = 0.5
+SHUTDOWN_GRACE_SECONDS = 5
+
 EXIT_SUCCESS = 0
-EXIT_ACCOUNTING_API_UNREACHABLE = 1
+EXIT_UNSUPPORTED_PYTHON = 1
+EXIT_INSTALL_FAILED = 2
 
 
-class StartupReport:
-
-    @staticmethod
-    def accounting_api_instructions(base_url: str) -> None:
-        print("")
-        print("The accounting API is not answering at " + base_url)
-        print("Start it yourself in a separate terminal, then run this command again:")
-        print("")
-        print("    python " + ACCOUNTING_API_SCRIPT)
-        print("")
-        print("It must keep running in that terminal. This command never starts or stops it,")
-        print("because a second copy would fight the first one for the same port.")
-        print("")
+class Console:
 
     @staticmethod
-    def unauthorized_warning(base_url: str) -> None:
-        print("")
-        print("The accounting API at " + base_url + " rejected the configured API key.")
-        print("Set ACCOUNTING_API_KEY in .env to the key the accounting system expects.")
-        print("Invoices can still be read and reviewed, but none of them can be registered.")
-        print("")
+    def section(message: str) -> None:
+        print("", flush=True)
+        print(message, flush=True)
 
     @staticmethod
-    def invoice_directory(invoice_directory: Path, invoice_count: int) -> None:
-        if invoice_count > 0:
-            print("Reading " + str(invoice_count) + " invoices from " + str(invoice_directory))
+    def line(message: str) -> None:
+        print("  " + message, flush=True)
+
+
+class Environment:
+
+    @staticmethod
+    def venv_python() -> Path:
+        if os.name == "nt":
+            return VENV_DIRECTORY / "Scripts" / "python.exe"
+        return VENV_DIRECTORY / "bin" / "python"
+
+    @staticmethod
+    def packages_importable() -> bool:
+        from importlib.util import find_spec
+
+        return all(find_spec(package) is not None for package in REQUIRED_PACKAGES)
+
+    @staticmethod
+    def create_virtual_environment() -> None:
+        if Environment.venv_python().is_file():
+            Console.line("Reusing the virtual environment in .venv")
             return
-        print("")
-        print("No invoices were found in " + str(invoice_directory))
-        print("Put the invoice files (.pdf, .jpg, .jpeg, .png) in that folder,")
-        print("or point INVOICE_DIR in .env at the folder that holds them.")
-        print("")
+        Console.line("Creating a virtual environment in .venv")
+        venv.EnvBuilder(with_pip=True, upgrade_deps=False).create(VENV_DIRECTORY)
 
     @staticmethod
-    def frontend_build_instructions(frontend_directory: Path) -> None:
-        print("")
-        print("No built frontend was found at " + str(frontend_directory))
-        print("The REST API is still served. To get the review screen, build the frontend:")
-        print("")
-        print("    cd frontend")
-        print("    npm install")
-        print("    npm run build")
-        print("")
+    def install_requirements() -> bool:
+        Console.line("Installing dependencies from requirements.txt (this takes a few minutes)")
+        completed = subprocess.run(
+            [
+                str(Environment.venv_python()),
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--quiet",
+                "-r",
+                str(REQUIREMENTS_FILE),
+            ],
+            check=False,
+        )
+        return completed.returncode == 0
+
+    @staticmethod
+    def relaunch_inside_virtual_environment() -> None:
+        Console.line("Starting the application inside .venv")
+        environment = dict(os.environ, **{BOOTSTRAP_MARKER: "1"})
+        python = str(Environment.venv_python())
+        if os.name == "nt":
+            raise SystemExit(
+                subprocess.run([python, str(Path(__file__).resolve())], env=environment).returncode
+            )
+        os.execve(python, [python, str(Path(__file__).resolve())], environment)
+
+    @staticmethod
+    def prepare() -> None:
+        if Environment.packages_importable():
+            return
+        if os.environ.get(BOOTSTRAP_MARKER):
+            Console.section("Dependencies are still missing after installing them.")
+            Console.line("Install them manually with: pip install -r requirements.txt")
+            raise SystemExit(EXIT_INSTALL_FAILED)
+        Console.section("First run: setting up everything this project needs.")
+        Environment.create_virtual_environment()
+        if not Environment.install_requirements():
+            Console.section("The dependencies could not be installed.")
+            Console.line("Install them manually with: pip install -r requirements.txt")
+            raise SystemExit(EXIT_INSTALL_FAILED)
+        Environment.relaunch_inside_virtual_environment()
+
+
+class AccountingApi:
+
+    @staticmethod
+    def is_answering(base_url: str) -> bool:
+        try:
+            with urllib.request.urlopen(base_url + HEALTH_PATH, timeout=2) as response:
+                return response.status == 200
+        except (urllib.error.URLError, OSError):
+            return False
+
+    @staticmethod
+    def start(base_url: str) -> "subprocess.Popen[bytes]":
+        port = urlparse(base_url).port
+        Console.line(f"Starting the accounting system API on port {port}")
+        return subprocess.Popen(
+            [sys.executable, str(ACCOUNTING_API_SCRIPT)],
+            cwd=str(PROJECT_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    @staticmethod
+    def wait_until_answering(base_url: str) -> bool:
+        deadline = time.monotonic() + HEALTH_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            if AccountingApi.is_answering(base_url):
+                return True
+            time.sleep(HEALTH_POLL_SECONDS)
+        return False
+
+    @staticmethod
+    def stop(process: "subprocess.Popen[bytes]") -> None:
+        process.terminate()
+        try:
+            process.wait(timeout=SHUTDOWN_GRACE_SECONDS)
+        except subprocess.TimeoutExpired:
+            process.kill()
 
 
 class Application:
 
     @staticmethod
-    def count_invoices(settings: Settings) -> int:
-        return len(list(Utils.iter_files_with_suffixes(settings.invoice_directory, SUPPORTED_SUFFIXES)))
-
-    @staticmethod
     def run() -> int:
-        settings = SettingsLoader.load(PROJECT_ROOT)
-        gateway = HttpAccountingGateway(
-            settings.accounting_base_url,
-            settings.accounting_api_key,
-            settings.accounting_timeout_seconds,
+        if sys.version_info < MINIMUM_PYTHON:
+            Console.section(
+                f"Python {MINIMUM_PYTHON[0]}.{MINIMUM_PYTHON[1]} or newer is required, "
+                f"but this is {sys.version_info.major}.{sys.version_info.minor}."
+            )
+            return EXIT_UNSUPPORTED_PYTHON
+
+        Environment.prepare()
+
+        import uvicorn
+
+        from backend.app import create_app
+        from backend.core import Utils
+        from backend.services.extraction import SUPPORTED_SUFFIXES
+        from backend.settings import load_settings
+
+        settings = load_settings(PROJECT_ROOT)
+        accounting_process = None
+        if AccountingApi.is_answering(settings.accounting_base_url):
+            Console.line("The accounting system API is already running; leaving it alone")
+        else:
+            accounting_process = AccountingApi.start(settings.accounting_base_url)
+            if not AccountingApi.wait_until_answering(settings.accounting_base_url):
+                Console.line("The accounting system API did not answer; registration is disabled")
+
+        if not ENVIRONMENT_FILE.is_file():
+            Console.line("No .env file found; add your OPENROUTER_API_KEY to read invoices")
+        invoice_count = len(
+            list(Utils.iter_files_with_suffixes(settings.invoice_directory, SUPPORTED_SUFFIXES))
         )
-        if not gateway.is_reachable():
-            StartupReport.accounting_api_instructions(settings.accounting_base_url)
-            return EXIT_ACCOUNTING_API_UNREACHABLE
-        try:
-            gateway.fetch_partners()
-        except IntakeError as error:
-            if error.code == ErrorCode.UNAUTHORIZED:
-                StartupReport.unauthorized_warning(settings.accounting_base_url)
-        StartupReport.invoice_directory(settings.invoice_directory, Application.count_invoices(settings))
+        Console.line(f"Reading {invoice_count} invoices from {settings.invoice_directory}")
         if not settings.frontend_directory.is_dir():
-            StartupReport.frontend_build_instructions(settings.frontend_directory)
-        application = create_app(settings)
-        print("")
-        print("Invoice intake is starting on http://" + settings.host + ":" + str(settings.port))
-        print("")
-        uvicorn.run(application, host=settings.host, port=settings.port)
+            Console.line("No built frontend found; the REST API is still served")
+
+        Console.section(f"Open http://{settings.host}:{settings.port} in your browser")
+        print("", flush=True)
+        try:
+            uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
+        finally:
+            if accounting_process is not None:
+                AccountingApi.stop(accounting_process)
         return EXIT_SUCCESS
 
 
