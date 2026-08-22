@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { reprocessDocument } from '../api/documents';
 import { DocumentDetail } from '../components/DocumentDetail';
+import { SourcePreview } from '../components/SourcePreview';
 import { MessageBanner } from '../components/MessageBanner';
 import { navigateTo } from '../hooks/useHashRoute';
 import { useWords } from '../i18n';
@@ -75,12 +76,21 @@ export function DocumentPage({ document, documents, isLoading, onDocumentUpdated
         </MessageBanner>
       ) : null}
 
-      <DocumentDetail
-        key={document.document_id}
-        document={document}
-        duplicateSourceName={duplicateSourceName}
-        onDocumentUpdated={onDocumentUpdated}
-      />
+      {document.status === 'processing' ? (
+        <>
+          <MessageBanner tone="info" title={words.stillReadingDocument}>
+            <p>{words.fieldsAppearWhenReadingFinishes}</p>
+          </MessageBanner>
+          <SourcePreview documentId={document.document_id} sourceName={document.source_name} />
+        </>
+      ) : (
+        <DocumentDetail
+          key={document.document_id}
+          document={document}
+          duplicateSourceName={duplicateSourceName}
+          onDocumentUpdated={onDocumentUpdated}
+        />
+      )}
     </div>
   );
 }

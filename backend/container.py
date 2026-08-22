@@ -8,7 +8,7 @@ from .services.extraction import (
     OrientationCorrector,
 )
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
-from .repositories import SqlModelDocumentRepository
+from .repositories import DocumentRepository
 from .services.document_service import InvoiceIntakeService
 from .services.validation import ValidationService
 from .settings import Settings
@@ -33,7 +33,7 @@ class ApplicationContainer:
 
     @cached_property
     def document_repository(self) -> IDocumentRepository:
-        return SqlModelDocumentRepository(self._settings.database_path)
+        return DocumentRepository(self._settings.database_path)
 
     @cached_property
     def transcribers(self) -> Transcribers:

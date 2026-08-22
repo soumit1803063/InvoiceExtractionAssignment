@@ -78,6 +78,8 @@ export const DICTIONARY = {
   readyRegister: { en: 'Ready to register', ja: '登録可' },
   rejected: { en: 'Rejected', ja: '却下' },
   reading: { en: 'Reading…', ja: '読取中' },
+  stillReadingDocument: { en: 'This invoice is still being read', ja: 'この請求書はまだ読み取り中です' },
+  fieldsAppearWhenReadingFinishes: { en: 'The extracted fields and the checks appear here once reading finishes. Only the original document is shown until then.', ja: '読み取りが終わると、抽出項目と検証結果がここに表示されます。それまでは元の書類のみを表示します。' },
   supplierName: { en: 'Supplier name', ja: '取引先名' },
   invoiceNumber: { en: 'Invoice number', ja: '請求書番号' },
   issueDate: { en: 'Issue date', ja: '発行日' },

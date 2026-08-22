@@ -963,6 +963,14 @@ select {
   border-bottom: 1px solid var(--border);
 }
 
+.queue__row--reading {
+  cursor: default;
+}
+
+.queue__row--reading:hover {
+  background: inherit;
+}
+
 .queue__row:hover {
   background: var(--surface-muted);
 }
