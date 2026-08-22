@@ -7,7 +7,8 @@ from .services.extraction import (
     MarkitdownTranscriber,
 )
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
-from .services.document_service import InvoiceIntakeService, SqlModelDocumentRepository
+from .repositories import SqlModelDocumentRepository
+from .services.document_service import InvoiceIntakeService
 from .services.validation import VerificationService
 from .settings import Settings
 
