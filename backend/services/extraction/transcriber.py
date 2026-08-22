@@ -11,29 +11,20 @@ from ...settings import Settings
 
 class MarkitdownTranscriber:
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, model_id: str = "") -> None:
         self._base_url = settings.openrouter_base_url
         self._api_key = settings.openrouter_api_key
-        self._model_id = settings.transcription_model
+        self._model_id = model_id
         self._timeout_seconds = settings.model_timeout_seconds
         self._prompt = settings.transcribe_prompt
         self._converter: Optional[MarkItDown] = None
 
-    def _reader(self) -> MarkItDown:
-        if self._converter is None:
-            self._converter = MarkItDown(
-                llm_client=OpenAI(
-                    base_url=self._base_url,
-                    api_key=self._api_key,
-                    timeout=self._timeout_seconds,
-                ),
-                llm_model=self._model_id,
-                llm_prompt=self._prompt,
-            )
-        return self._converter
+    @property
+    def model_id(self) -> str:
+        return self._model_id
 
     def to_markdown(self, page: MdPageImage) -> str:
-        if not self._api_key:
+        if self._model_id and not self._api_key:
             raise IntakeError(ErrorCode.TRANSCRIPTION_FAILED, ErrorMessage.NO_TRANSCRIBER)
         stream_info = StreamInfo(
             mimetype=page.media_type,
@@ -49,3 +40,47 @@ class MarkitdownTranscriber:
         if not markdown:
             raise IntakeError(ErrorCode.TRANSCRIPTION_FAILED, ErrorMessage.EMPTY_TRANSCRIPTION)
         return markdown
+
+    def _reader(self) -> MarkItDown:
+        if self._converter is None:
+            self._converter = MarkItDown() if not self._model_id else MarkItDown(
+                llm_client=OpenAI(
+                    base_url=self._base_url,
+                    api_key=self._api_key,
+                    timeout=self._timeout_seconds,
+                ),
+                llm_model=self._model_id,
+                llm_prompt=self._prompt,
+            )
+        return self._converter
+
+
+class Transcribers:
+
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+
+    def openrouter_inkling(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_inkling)
+
+    def openrouter_gemma(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_gemma)
+
+    def openrouter_nemotron_omni(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_nemotron_omni)
+
+    def openrouter_nemotron_vl(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings, self._settings.openrouter_nemotron_vl)
+
+    def plain(self) -> MarkitdownTranscriber:
+        return MarkitdownTranscriber(self._settings)
+
+    def fallback_chain(self) -> tuple[MarkitdownTranscriber, ...]:
+        transcribers = []
+        if self._settings.openrouter_api_key:
+            transcribers.append(self.openrouter_inkling())
+            transcribers.append(self.openrouter_gemma())
+            transcribers.append(self.openrouter_nemotron_omni())
+            transcribers.append(self.openrouter_nemotron_vl())
+        transcribers.append(self.plain())
+        return tuple(transcribers)

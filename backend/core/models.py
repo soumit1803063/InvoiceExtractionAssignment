@@ -136,6 +136,7 @@ class ErrorMessage(StrEnum):
     CONTENT_REJECTED = "content_rejected: {detail}"
     UNREADABLE_DOCUMENT = "Could not read the document: {detail}"
     EMPTY_TRANSCRIPTION = "the transcriber returned no text for this page"
+    NO_STRUCTURING_MODEL = "no structuring model is configured"
     NO_TRANSCRIBER = "no transcription provider is configured"
     PROCESSING_FAILED = "Reading the document failed: {detail}"
     PROCESSING_INTERRUPTED = "Reading was interrupted before it finished, so it was started again"

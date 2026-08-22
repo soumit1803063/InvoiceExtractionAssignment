@@ -11,7 +11,6 @@ from ...core import (
     ErrorCode,
     ErrorMessage,
     IntakeError,
-    ITranscriber,
     MdExtractionResult,
     MdPageImage,
     MdTaxBreakdown,
@@ -20,6 +19,7 @@ from ...core import (
     coerce_tax_code,
 )
 from .agents import Agents
+from .transcriber import Transcribers
 from .orientation import OrientationCorrector
 
 PathLike = Union[Path, str]
@@ -29,6 +29,7 @@ IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 SUPPORTED_SUFFIXES = PDF_SUFFIXES + IMAGE_SUFFIXES
 PAGE_SEPARATOR = "\n\n"
 PAGE_HEADING = "<!-- page {page_number} -->\n"
+FAILURE_SEPARATOR = "; "
 
 
 class ExtractionService:
@@ -36,13 +37,13 @@ class ExtractionService:
     def __init__(
         self,
         settings: Settings,
-        transcriber: ITranscriber,
+        transcribers: Transcribers,
         agents: Agents,
         orientation: OrientationCorrector,
     ) -> None:
         self._dpi = settings.render_dpi
-        self._transcriber = transcriber
-        self._agents = (agents.openrouter(), agents.gemini())
+        self._transcribers = transcribers.fallback_chain()
+        self._agents = agents.fallback_chain()
         self._orientation = orientation
 
     def extract(self, file_path: PathLike) -> MdExtractionResult:
@@ -57,9 +58,17 @@ class ExtractionService:
         pages = []
         for page_image in self._to_page_images(path):
             heading = PAGE_HEADING.format(page_number=page_image.page_number)
-            markdown = self._transcriber.to_markdown(page_image)
-            pages.append(heading + markdown)
+            pages.append(heading + self._transcribe_page(page_image))
         return PAGE_SEPARATOR.join(pages)
+
+    def _transcribe_page(self, page: MdPageImage) -> str:
+        failures = []
+        for transcriber in self._transcribers:
+            try:
+                return transcriber.to_markdown(page)
+            except IntakeError as error:
+                failures.append(f"{transcriber.model_id or 'no model'}: {error.message}")
+        raise IntakeError(ErrorCode.TRANSCRIPTION_FAILED, FAILURE_SEPARATOR.join(failures))
 
     def _to_page_images(self, path: PathLike) -> Sequence[MdPageImage]:
         media_type = Utils.media_type_for_path(path)
@@ -76,6 +85,8 @@ class ExtractionService:
         )
 
     def _extract_from_markdown(self, markdown: str) -> AiInvoice:
+        if not self._agents:
+            raise IntakeError(ErrorCode.STRUCTURING_FAILED, ErrorMessage.NO_STRUCTURING_MODEL)
         failures = []
         for agent in self._agents:
             try:
@@ -86,7 +97,7 @@ class ExtractionService:
             if isinstance(answer, AiInvoice):
                 return answer
             failures.append(ErrorMessage.UNUSABLE_RESPONSE)
-        raise IntakeError(ErrorCode.STRUCTURING_FAILED, "; ".join(failures))
+        raise IntakeError(ErrorCode.STRUCTURING_FAILED, FAILURE_SEPARATOR.join(failures))
 
     @staticmethod
     def classify(path: PathLike) -> SourceKind:
