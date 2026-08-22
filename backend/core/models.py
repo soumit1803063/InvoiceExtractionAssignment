@@ -1,7 +1,6 @@
 import re
 from collections.abc import Iterator, Sequence
 from enum import StrEnum
-from pathlib import Path
 from typing import (
     Annotated,
     Literal,

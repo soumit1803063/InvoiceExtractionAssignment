@@ -2,19 +2,16 @@ import hashlib
 import io
 import json
 import re
-import time
 import unicodedata
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Iterator, Sequence
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from itertools import product
 from pathlib import Path
-from typing import Optional, TypeVar, Union
-from typing import Optional, TypeVar
+from typing import Optional, Union
 
 import pypdfium2
 from PIL import Image
-TResult = TypeVar("TResult")
 PathLike = Union[Path, str]
 
 
@@ -207,64 +204,6 @@ class Utils:
         return None
 
 
-    OPENING_FENCE = re.compile(r"^```[A-Za-z]*\s*")
-    CLOSING_FENCE = "```"
-
-    @staticmethod
-    def strip_code_fences(text: Optional[str]) -> str:
-        stripped = (text or "").strip()
-        if not stripped.startswith(Utils.CLOSING_FENCE):
-            return stripped
-        stripped = Utils.OPENING_FENCE.sub("", stripped)
-        if stripped.endswith(Utils.CLOSING_FENCE):
-            stripped = stripped[: -len(Utils.CLOSING_FENCE)]
-        return stripped.strip()
-
-    @staticmethod
-    def extract_first_balanced_object(text: str) -> Optional[str]:
-        depth = 0
-        start_index = None
-        inside_string = False
-        escaped = False
-        for index, character in enumerate(text):
-            if inside_string:
-                if escaped:
-                    escaped = False
-                elif character == "\\":
-                    escaped = True
-                elif character == '"':
-                    inside_string = False
-                continue
-            if character == '"':
-                inside_string = True
-            elif character == "{":
-                if depth == 0:
-                    start_index = index
-                depth += 1
-            elif character == "}":
-                if depth > 0:
-                    depth -= 1
-                    if depth == 0 and start_index is not None:
-                        return text[start_index : index + 1]
-        return None
-
-    @staticmethod
-    def parse_json_object(text: Optional[str]) -> Optional[object]:
-        candidate = Utils.strip_code_fences(text)
-        if not candidate:
-            return None
-        try:
-            return json.loads(candidate)
-        except json.JSONDecodeError:
-            pass
-        inner = Utils.extract_first_balanced_object(candidate)
-        if inner is None:
-            return None
-        try:
-            return json.loads(inner)
-        except json.JSONDecodeError:
-            return None
-
     @staticmethod
     def dump_json(value: object) -> str:
         return json.dumps(value, ensure_ascii=False)
@@ -405,32 +344,6 @@ class Utils:
             return character_count
         finally:
             document.close()
-
-    DEFAULT_ATTEMPTS = 2
-    DEFAULT_INITIAL_DELAY_SECONDS = 1.0
-    DEFAULT_BACKOFF_FACTOR = 2.0
-
-    @staticmethod
-    def retry_with_backoff(
-        operation: Callable[[], TResult],
-        attempts: int = DEFAULT_ATTEMPTS,
-        initial_delay_seconds: float = DEFAULT_INITIAL_DELAY_SECONDS,
-        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
-        should_retry: Optional[Callable[[Exception], bool]] = None,
-    ) -> TResult:
-        delay_seconds = initial_delay_seconds
-        last_error = None
-        for attempt_index in range(attempts):
-            try:
-                return operation()
-            except Exception as error:
-                last_error = error
-                is_last_attempt = attempt_index == attempts - 1
-                if is_last_attempt or (should_retry is not None and not should_retry(error)):
-                    break
-                time.sleep(delay_seconds)
-                delay_seconds *= backoff_factor
-        raise last_error
 
 
     MAX_EXHAUSTIVE_ITEMS = 12
