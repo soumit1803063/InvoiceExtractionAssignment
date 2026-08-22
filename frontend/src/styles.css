@@ -1282,3 +1282,7 @@ select {
   font-size: 0.82rem;
   margin: 0;
 }
+
+.queue-tabs__clear {
+  margin-left: auto;
+}

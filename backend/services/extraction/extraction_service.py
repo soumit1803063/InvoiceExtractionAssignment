@@ -14,7 +14,6 @@ from ...core import (
     MdExtractionResult,
     MdPageImage,
     MdTaxBreakdown,
-    SourceKind,
     Utils,
     coerce_tax_code,
 )
@@ -56,19 +55,15 @@ class ExtractionService:
             return MdExtractionResult(error_message=self.reason_for(error))
 
     def _convert_file_to_markdown(self, path: PathLike) -> str:
-        if self.classify(path) == SourceKind.TEXT_PDF:
-            try:
-                return self._read_without_a_model(path)
-            except IntakeError:
-                pass
         try:
-            pages = []
-            for page_image in self._to_page_images(path):
-                heading = PAGE_HEADING.format(page_number=page_image.page_number)
-                pages.append(heading + self._transcribe_page(page_image))
-            return PAGE_SEPARATOR.join(pages)
-        except IntakeError:
             return self._read_without_a_model(path)
+        except IntakeError:
+            pass
+        pages = []
+        for page_image in self._to_page_images(path):
+            heading = PAGE_HEADING.format(page_number=page_image.page_number)
+            pages.append(heading + self._transcribe_page(page_image))
+        return PAGE_SEPARATOR.join(pages)
 
     def _read_without_a_model(self, path: PathLike) -> str:
         page = MdPageImage(
@@ -115,15 +110,6 @@ class ExtractionService:
                 return answer
             failures.append(ErrorMessage.UNUSABLE_RESPONSE)
         raise IntakeError(ErrorCode.STRUCTURING_FAILED, FAILURE_SEPARATOR.join(failures))
-
-    @staticmethod
-    def classify(path: PathLike) -> SourceKind:
-        suffix = Path(path).suffix.lower()
-        if suffix in IMAGE_SUFFIXES:
-            return SourceKind.IMAGE
-        if Utils.count_pdf_text_characters(path) > 0:
-            return SourceKind.TEXT_PDF
-        return SourceKind.IMAGE_PDF
 
     @staticmethod
     def reason_for(error: IntakeError) -> str:

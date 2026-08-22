@@ -1,12 +1,6 @@
 from enum import StrEnum
 
 
-class SourceKind(StrEnum):
-    TEXT_PDF = "text_pdf"
-    IMAGE_PDF = "image_pdf"
-    IMAGE = "image"
-
-
 class IntakeError(Exception):
 
     def __init__(self, code: "ErrorCode", message: str, status: int = 0) -> None:

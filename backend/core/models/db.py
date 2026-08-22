@@ -2,7 +2,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from sqlmodel import Field as Column
 from sqlmodel import SQLModel
-from .enums import DocumentStatus, SourceKind
+from .enums import DocumentStatus
 from .fields import Amount, DisplayText, Identifier, IsoDate, RegistrationNumber, TaxCode
 
 
@@ -70,7 +70,6 @@ class DbDocument(BaseModel):
     document_id: StrictStr
     created_at: StrictStr
     source_name: StrictStr
-    source_kind: SourceKind
     fields: DbInvoiceFields
     verification: DbVerification
     status: DocumentStatus
@@ -97,7 +96,6 @@ class DbDocumentRow(SQLModel, table=True):
     updated_at: StrictStr
     source_name: StrictStr
     source_path: StrictStr = Column(index=True)
-    source_kind: StrictStr
     partner_code: Optional[StrictStr] = Column(default=None, index=True)
     invoice_number: Optional[StrictStr] = Column(default=None, index=True)
     fields_json: StrictStr

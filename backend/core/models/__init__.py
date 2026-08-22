@@ -4,7 +4,6 @@ from .enums import (
     ErrorMessage,
     IntakeError,
     RuleCode,
-    SourceKind,
 )
 from .fields import (
     Amount,
@@ -102,7 +101,6 @@ __all__ = [
     "ResRegistrationReceipt",
     "ResTaxRate",
     "RuleCode",
-    "SourceKind",
     "TaxCode",
     "TaxRateTable",
     "coerce_amount",

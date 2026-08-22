@@ -113,7 +113,6 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
           <h1 className="detail__title">{document.source_name}</h1>
           <p className="detail__meta">
             <StatusBadge status={document.status} />
-            <span>{document.source_kind}</span>
             <span className="detail__hash" title={document.document_id}>
               {document.document_id.slice(0, 12)}
             </span>
