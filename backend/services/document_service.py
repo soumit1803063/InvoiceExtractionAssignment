@@ -79,11 +79,11 @@ class InvoiceIntakeService:
         self._registration_lock = threading.Lock()
 
     @staticmethod
-    def utc_now_iso() -> str:
+    def _utc_now_iso() -> str:
         return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     @staticmethod
-    def new_document_id() -> str:
+    def _new_document_id() -> str:
         return str(uuid.uuid4())
 
     def partners(self) -> PartnerDirectory:
@@ -108,16 +108,16 @@ class InvoiceIntakeService:
         directory.mkdir(parents=True, exist_ok=True)
         target = Utils.unique_path(directory, file_name)
         target.write_bytes(content)
-        return self.enqueue(target)
+        return self._enqueue(target)
 
-    def enqueue(self, path: PathLike) -> DbDocument:
+    def _enqueue(self, path: PathLike) -> DbDocument:
         resolved = str(Path(path).resolve())
         existing = self._repository.find_by_source_path(resolved)
         if existing is not None:
             return existing.document
-        timestamp = self.utc_now_iso()
+        timestamp = self._utc_now_iso()
         document = DbDocument(
-            document_id=self.new_document_id(),
+            document_id=self._new_document_id(),
             created_at=timestamp,
             source_name=Path(path).name,
             source_kind=self._extraction.classify(path),
@@ -133,24 +133,24 @@ class InvoiceIntakeService:
                 updated_at=timestamp,
             )
         )
-        self.start_processing(document.document_id)
+        self._start_processing(document.document_id)
         return document
 
-    def start_processing(self, document_id: str) -> None:
-        worker = threading.Thread(target=self.run_processing, args=(document_id,), daemon=True)
+    def _start_processing(self, document_id: str) -> None:
+        worker = threading.Thread(target=self._run_processing, args=(document_id,), daemon=True)
         worker.start()
 
-    def run_processing(self, document_id: str) -> None:
+    def _run_processing(self, document_id: str) -> None:
         try:
-            self.process(document_id)
+            self._process(document_id)
         except Exception as error:
-            self.record_processing_failure(document_id, error)
+            self._record_processing_failure(document_id, error)
 
-    def record_processing_failure(self, document_id: str, error: Exception) -> None:
+    def _record_processing_failure(self, document_id: str, error: Exception) -> None:
         stored = self._repository.get(document_id)
         if stored is None:
             return
-        self.rebuild_and_save(
+        self._rebuild_and_save(
             stored,
             stored.document.fields,
             stored.document.registration,
@@ -164,10 +164,10 @@ class InvoiceIntakeService:
             if stored.document.status == DocumentStatus.PROCESSING
         ]
         for document in stranded:
-            self.start_processing(document.document_id)
+            self._start_processing(document.document_id)
         return stranded
 
-    def process(self, document_id: str) -> Optional[DbDocument]:
+    def _process(self, document_id: str) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)
         if stored is None:
             return None
@@ -175,8 +175,8 @@ class InvoiceIntakeService:
         reasons = [outcome.error_message] if outcome.error_message else []
         previous = stored.document.registration
         kept = previous if DocumentPolicy.registration_succeeded(previous) else None
-        document = self.rebuild_and_save(stored, outcome.fields, kept, extra_reasons=reasons)
-        return self.register_when_clean(document)
+        document = self._rebuild_and_save(stored, outcome.fields, kept, extra_reasons=reasons)
+        return self._register_when_clean(document)
 
     def reprocess(self, document_id: str) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)
@@ -186,9 +186,9 @@ class InvoiceIntakeService:
             update={"status": DocumentStatus.PROCESSING, "blocking_reasons": []}
         )
         self._repository.save(
-            stored.model_copy(update={"document": document, "updated_at": self.utc_now_iso()})
+            stored.model_copy(update={"document": document, "updated_at": self._utc_now_iso()})
         )
-        self.start_processing(document_id)
+        self._start_processing(document_id)
         return document
 
     def scan(self) -> list[DbDocument]:
@@ -196,10 +196,10 @@ class InvoiceIntakeService:
         for path in Utils.iter_files_with_suffixes(
             self._settings.invoice_directory, SUPPORTED_SUFFIXES
         ):
-            self.enqueue(path)
+            self._enqueue(path)
         return self.list_documents()
 
-    def build_document(
+    def _build_document(
         self,
         document_id: str,
         created_at: str,
@@ -235,7 +235,7 @@ class InvoiceIntakeService:
             registration=registration,
         )
 
-    def rebuild_and_save(
+    def _rebuild_and_save(
         self,
         stored: DbStoredDocument,
         fields: DbInvoiceFields,
@@ -243,7 +243,7 @@ class InvoiceIntakeService:
         extra_reasons: Sequence[str] = (),
     ) -> DbDocument:
         previous = stored.document
-        document = self.build_document(
+        document = self._build_document(
             document_id=previous.document_id,
             created_at=previous.created_at,
             source_name=previous.source_name,
@@ -257,7 +257,7 @@ class InvoiceIntakeService:
                 document=document,
                 source_path=stored.source_path,
                 created_at=stored.created_at,
-                updated_at=self.utc_now_iso(),
+                updated_at=self._utc_now_iso(),
             )
         )
         return document
@@ -268,10 +268,10 @@ class InvoiceIntakeService:
             return None
         previous = stored.document.registration
         kept = previous if DocumentPolicy.registration_succeeded(previous) else None
-        document = self.rebuild_and_save(stored, fields, kept)
-        return self.register_when_clean(document)
+        document = self._rebuild_and_save(stored, fields, kept)
+        return self._register_when_clean(document)
 
-    def register_when_clean(self, document: DbDocument) -> DbDocument:
+    def _register_when_clean(self, document: DbDocument) -> DbDocument:
         if document.blocking_reasons or DocumentPolicy.is_registered(document):
             return document
         outcome = self.register(document.document_id)
@@ -286,18 +286,18 @@ class InvoiceIntakeService:
             return previous, previous.registration
         if previous.blocking_reasons:
             registration = DbRegistration(
-                attempted_at=self.utc_now_iso(),
+                attempted_at=self._utc_now_iso(),
                 http_status=0,
                 error_code=ErrorCode.VERIFICATION_BLOCKED,
                 error_message=DocumentPolicy.refusal_reason(previous),
             )
         else:
-            registration = self.send_registration(previous.fields)
-        document = self.rebuild_and_save(stored, previous.fields, registration)
+            registration = self._send_registration(previous.fields)
+        document = self._rebuild_and_save(stored, previous.fields, registration)
         return document, registration
 
-    def send_registration(self, fields: DbInvoiceFields) -> DbRegistration:
-        attempted_at = self.utc_now_iso()
+    def _send_registration(self, fields: DbInvoiceFields) -> DbRegistration:
+        attempted_at = self._utc_now_iso()
         request = ReqRegistrationFactory.of(fields)
         try:
             with self._registration_lock:
