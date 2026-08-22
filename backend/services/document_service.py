@@ -30,7 +30,7 @@ from ..core import (
 from ..settings import Settings
 from .accounting_service import ReferenceDataProvider, ReqRegistrationFactory
 from .extraction import SUPPORTED_SUFFIXES, ExtractionService
-from .validation_service import ReportReader, VerificationService
+from .validation import ReportReader, VerificationService
 
 PathLike = Union[Path, str]
 Preview = tuple[Path, str]
