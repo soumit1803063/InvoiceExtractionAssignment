@@ -23,6 +23,22 @@ from ..core import (
 
 CACHE_SECONDS = 60
 LINE_KEYS_ALLOWING_NONE = ("quantity", "unit_price")
+API_KEY_HEADER = "X-API-Key"
+CONTENT_TYPE_HEADER = "Content-Type"
+JSON_CONTENT_TYPE = "application/json"
+HEALTH_PATH = "/health"
+PARTNERS_PATH = "/partners"
+TAX_CODES_PATH = "/tax-codes"
+INVOICES_PATH = "/invoices"
+DEFAULT_TIMEOUT_SECONDS = 10
+NO_RESPONSE_HTTP_STATUS = 0
+SUCCESS_STATUS_FLOOR = 200
+SUCCESS_STATUS_CEILING = 300
+PARTNERS_KEY = "partners"
+TAX_CODES_KEY = "tax_codes"
+TAX_CODE_KEY = "tax_code"
+TAX_RATE_KEY = "rate"
+ACCOUNTING_ID_KEY = "accounting_id"
 
 
 class ReqRegistrationFactory:
@@ -143,24 +159,6 @@ class ReferenceDataProvider:
                 "supplier_name": fields.supplier_name or partner.name,
             }
         )
-
-
-API_KEY_HEADER = "X-API-Key"
-CONTENT_TYPE_HEADER = "Content-Type"
-JSON_CONTENT_TYPE = "application/json"
-HEALTH_PATH = "/health"
-PARTNERS_PATH = "/partners"
-TAX_CODES_PATH = "/tax-codes"
-INVOICES_PATH = "/invoices"
-DEFAULT_TIMEOUT_SECONDS = 10
-NO_RESPONSE_HTTP_STATUS = 0
-SUCCESS_STATUS_FLOOR = 200
-SUCCESS_STATUS_CEILING = 300
-PARTNERS_KEY = "partners"
-TAX_CODES_KEY = "tax_codes"
-TAX_CODE_KEY = "tax_code"
-TAX_RATE_KEY = "rate"
-ACCOUNTING_ID_KEY = "accounting_id"
 
 
 class HttpAccountingGateway:
