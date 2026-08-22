@@ -8,7 +8,7 @@ from .services.extraction import (
 )
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
 from .services.document_service import InvoiceIntakeService, SqlModelDocumentRepository
-from .services.validation_service import VerificationService
+from .services.validation import VerificationService
 from .settings import Settings
 
 
