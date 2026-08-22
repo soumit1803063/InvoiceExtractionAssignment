@@ -30,7 +30,6 @@ from .models import (
     ResRegistrationReceipt,
     ResTaxRate,
     RuleCode,
-    SourceKind,
     TaxRateTable,
 )
 from .utils import Utils
@@ -67,7 +66,6 @@ __all__ = [
     "ResRegistrationReceipt",
     "ResTaxRate",
     "RuleCode",
-    "SourceKind",
     "TaxRateTable",
     "Utils",
 ]

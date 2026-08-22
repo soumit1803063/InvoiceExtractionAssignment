@@ -97,6 +97,15 @@ class InvoiceIntakeService:
     def list_documents(self) -> list[DbDocument]:
         return [stored.document for stored in self._repository.list_all()]
 
+    def clear(self) -> int:
+        stored = self._repository.list_all()
+        for entity in stored:
+            source = Path(entity.source_path)
+            if source.is_file() and source.parent == Path(self._settings.invoice_directory):
+                source.unlink(missing_ok=True)
+        self._repository.delete_all()
+        return len(stored)
+
     def get_document(self, document_id: str) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)
         return stored.document if stored else None
@@ -118,7 +127,6 @@ class InvoiceIntakeService:
             document_id=self._new_document_id(),
             created_at=timestamp,
             source_name=Path(path).name,
-            source_kind=self._extraction.classify(path),
             fields=DbInvoiceFields(),
             verification=DbVerification(),
             status=DocumentStatus.PROCESSING,

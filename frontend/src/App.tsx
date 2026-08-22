@@ -121,6 +121,7 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
           <QueuePage
             documents={documents}
             tab={route === '/logged' ? 'logged' : route === '/reading' ? 'reading' : 'queue'}
+            onCleared={documentsResource.reload}
             isLoading={documentsResource.isLoading}
           />
         )}

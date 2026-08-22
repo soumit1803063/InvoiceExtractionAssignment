@@ -68,6 +68,10 @@ export async function registerDocument(documentId: string, signal?: AbortSignal)
   );
 }
 
+export async function clearDocuments(signal?: AbortSignal): Promise<DocumentListResponse> {
+  return requestJson<DocumentListResponse>('/documents', { method: 'DELETE', ...abortable(signal) });
+}
+
 export async function uploadDocument(file: File, signal?: AbortSignal): Promise<InvoiceDocument> {
   const form = new FormData();
   form.append('file', file);

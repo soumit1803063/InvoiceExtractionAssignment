@@ -49,7 +49,6 @@ class ValidationService:
             document_id=previous.document_id,
             created_at=previous.created_at,
             source_name=previous.source_name,
-            source_kind=previous.source_kind,
             fields=fields,
             verification=self._summarise(outcomes, duplicate_of),
             status=self._resolve_status(blocking_reasons, registration),

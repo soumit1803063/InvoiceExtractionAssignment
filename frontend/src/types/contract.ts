@@ -1,4 +1,3 @@
-export type SourceKind = 'text_pdf' | 'image_pdf' | 'image';
 
 export type DocumentStatus = 'processing' | 'needs_review' | 'ready' | 'registered' | 'rejected';
 
@@ -55,7 +54,6 @@ export interface InvoiceDocument {
   document_id: string;
   created_at: string;
   source_name: string;
-  source_kind: SourceKind;
   fields: InvoiceFields;
   verification: Verification;
   status: DocumentStatus;

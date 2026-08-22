@@ -48,7 +48,6 @@ class DocumentRepository:
             updated_at=entity.updated_at,
             source_name=document.source_name,
             source_path=entity.source_path,
-            source_kind=str(document.source_kind),
             partner_code=document.fields.partner_code,
             invoice_number=document.fields.invoice_number,
             fields_json=Utils.dump_json(document.fields.model_dump()),
@@ -66,7 +65,6 @@ class DocumentRepository:
             document_id=row.document_id,
             created_at=row.created_at,
             source_name=row.source_name,
-            source_kind=row.source_kind,
             fields=json.loads(row.fields_json),
             verification=json.loads(row.verification_json),
             status=row.status,
@@ -110,6 +108,12 @@ class DocumentRepository:
                 select(DbDocumentRow).where(DbDocumentRow.source_path == source_path)
             ).first()
             return self._to_stored_document(row) if row else None
+
+    def delete_all(self) -> None:
+        with Session(self._engine) as session:
+            for row in session.exec(select(DbDocumentRow)).all():
+                session.delete(row)
+            session.commit()
 
     def find_duplicate(
         self, partner_code: Optional[str], invoice_number: Optional[str], exclude_document_id: Optional[str]
