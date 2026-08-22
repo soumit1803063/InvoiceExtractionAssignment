@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
-from pydantic import BeforeValidator, Field, StrictInt, StrictStr
+from pydantic import BeforeValidator, Field, StrictBool, StrictInt, StrictStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_HOST = "127.0.0.1"
@@ -24,6 +24,7 @@ TRANSCRIBE_PROMPT_NAME = "transcribe.md"
 STRUCTURE_PROMPT_NAME = "structure.md"
 DEFAULT_GEMINI_MODEL = "gemini-3.7-flash"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_ORIENTATION_ENABLED = True
 ENVIRONMENT_FILE_NAME = ".env"
 TEXT_ENCODING = "utf-8"
 
@@ -40,7 +41,17 @@ def coerce_integer(value: object) -> object:
     return value
 
 
+def coerce_boolean(value: object) -> object:
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if not text:
+            return None
+        return text in ("1", "true", "yes", "on")
+    return value
+
+
 EnvInt = Annotated[StrictInt, BeforeValidator(coerce_integer)]
+EnvBool = Annotated[StrictBool, BeforeValidator(coerce_boolean)]
 
 
 class Settings(BaseSettings):
@@ -68,6 +79,14 @@ class Settings(BaseSettings):
     transcription_model: StrictStr = Field(default=DEFAULT_TRANSCRIPTION_MODEL, alias="TRANSCRIPTION_MODEL")
     structuring_model: StrictStr = Field(default=DEFAULT_STRUCTURING_MODEL, alias="STRUCTURING_MODEL")
     gemini_model: StrictStr = Field(default=DEFAULT_GEMINI_MODEL, alias="GEMINI_MODEL")
+    render_dpi: EnvInt = Field(default=DEFAULT_RENDER_DPI, alias="RENDER_DPI")
+    model_timeout_seconds: EnvInt = Field(
+        default=DEFAULT_MODEL_TIMEOUT_SECONDS, alias="MODEL_TIMEOUT_SECONDS"
+    )
+    orientation_enabled: EnvBool = Field(
+        default=DEFAULT_ORIENTATION_ENABLED, alias="ORIENTATION_ENABLED"
+    )
+    tesseract_path: StrictStr = Field(default="", alias="TESSERACT_PATH")
 
     @property
     def transcribe_prompt(self) -> str:
@@ -76,8 +95,6 @@ class Settings(BaseSettings):
     @property
     def structure_prompt(self) -> str:
         return (self.prompts_directory / STRUCTURE_PROMPT_NAME).read_text(encoding=TEXT_ENCODING)
-    render_dpi: EnvInt = Field(default=DEFAULT_RENDER_DPI, alias="RENDER_DPI")
-    model_timeout_seconds: EnvInt = Field(default=DEFAULT_MODEL_TIMEOUT_SECONDS, alias="MODEL_TIMEOUT_SECONDS")
 
 
 class SettingsLoader:
