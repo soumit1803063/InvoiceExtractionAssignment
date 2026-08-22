@@ -52,11 +52,16 @@ export function DocumentList({ documents, showRegistration, onSelectDocument }: 
           return (
             <tr
               key={document.document_id}
-              className="queue__row"
-              tabIndex={0}
-              onClick={() => onSelectDocument(document.document_id)}
+              className={isProcessing ? 'queue__row queue__row--reading' : 'queue__row'}
+              tabIndex={isProcessing ? -1 : 0}
+              aria-disabled={isProcessing}
+              onClick={() => {
+                if (!isProcessing) {
+                  onSelectDocument(document.document_id);
+                }
+              }}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
+                if (!isProcessing && (event.key === 'Enter' || event.key === ' ')) {
                   event.preventDefault();
                   onSelectDocument(document.document_id);
                 }

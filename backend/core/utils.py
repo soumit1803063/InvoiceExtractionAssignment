@@ -1,5 +1,6 @@
 import hashlib
 import io
+import threading
 import json
 import re
 import unicodedata
@@ -11,6 +12,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import pypdfium2
+
+PDFIUM_LOCK = threading.RLock()
 from PIL import Image
 PathLike = Union[Path, str]
 
@@ -318,40 +321,42 @@ class Utils:
     @staticmethod
     def iter_pdf_page_pngs(
         path: PathLike, dpi: int = DEFAULT_RENDER_DPI
-    ) -> Iterator[bytes]:
-        document = pypdfium2.PdfDocument(str(path))
-        try:
-            for page_index in range(len(document)):
-                page = document[page_index]
-                bitmap = page.render(scale=dpi / Utils.PDF_POINTS_PER_INCH)
-                frame = bitmap.to_pil()
-                try:
-                    page_png = Utils.encode_frame_as_png(frame)
-                finally:
-                    frame.close()
-                    bitmap.close()
-                    page.close()
-                yield page_png
-        finally:
-            document.close()
+    ) -> Sequence[bytes]:
+        pages = []
+        with PDFIUM_LOCK:
+            document = pypdfium2.PdfDocument(str(path))
+            try:
+                for page_index in range(len(document)):
+                    page = document[page_index]
+                    bitmap = page.render(scale=dpi / Utils.PDF_POINTS_PER_INCH)
+                    frame = bitmap.to_pil()
+                    try:
+                        pages.append(Utils.encode_frame_as_png(frame))
+                    finally:
+                        frame.close()
+                        bitmap.close()
+                        page.close()
+            finally:
+                document.close()
+        return tuple(pages)
 
     @staticmethod
     def count_pdf_text_characters(path: PathLike) -> int:
-        document = pypdfium2.PdfDocument(str(path))
-        try:
-            character_count = 0
-            for page_index in range(len(document)):
-                page = document[page_index]
-                text_page = page.get_textpage()
-                try:
-                    character_count += len(text_page.get_text_bounded().strip())
-                finally:
-                    text_page.close()
-                    page.close()
-            return character_count
-        finally:
-            document.close()
-
+        with PDFIUM_LOCK:
+            document = pypdfium2.PdfDocument(str(path))
+            try:
+                character_count = 0
+                for page_index in range(len(document)):
+                    page = document[page_index]
+                    text_page = page.get_textpage()
+                    try:
+                        character_count += len(text_page.get_text_bounded().strip())
+                    finally:
+                        text_page.close()
+                        page.close()
+                return character_count
+            finally:
+                document.close()
 
     MAX_EXHAUSTIVE_ITEMS = 12
     MAX_EXHAUSTIVE_GROUPS = 3

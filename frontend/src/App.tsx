@@ -16,6 +16,7 @@ const REFRESH_INTERVAL_WHILE_READING = 2000;
 
 const NAV_LINKS = [
   { route: '/upload', word: 'upload' },
+  { route: '/reading', word: 'readingTab' },
   { route: '/queue', word: 'queue' },
   { route: '/logged', word: 'logged' }
 ] as const;
@@ -57,8 +58,8 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
     [documentsResource.data, replaceData]
   );
 
-  const documentRoute = route.match(/^\/documents\/(.+)$/);
-  const activeRoute = documentRoute ? '/queue' : route;
+  const documentRoute = route.match(/^\/(queue|log|reading)\/documents\/(.+)$/);
+  const activeRoute = documentRoute ? `/${documentRoute[1] === 'log' ? 'logged' : documentRoute[1]}` : route;
 
   return (
     <div className="app">
@@ -108,7 +109,7 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
         {documentRoute ? (
           <DocumentPage
             document={
-              documents.find((candidate) => candidate.document_id === documentRoute[1]) ?? null
+              documents.find((candidate) => candidate.document_id === documentRoute[2]) ?? null
             }
             documents={documents}
             isLoading={documentsResource.isLoading}
@@ -119,7 +120,7 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
         ) : (
           <QueuePage
             documents={documents}
-            tab={route === '/logged' ? 'logged' : 'queue'}
+            tab={route === '/logged' ? 'logged' : route === '/reading' ? 'reading' : 'queue'}
             isLoading={documentsResource.isLoading}
           />
         )}

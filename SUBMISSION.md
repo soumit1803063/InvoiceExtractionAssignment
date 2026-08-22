@@ -3,7 +3,7 @@
 - Name: Soumit
 - Submission date (YYYY-MM-DD): 2026-08-22
 - Hours actually spent: 8
-- Repository / how to run it: https://github.com/soumit1803063/take-home — setup and the single start command are in `README.md`. Screenshots of it running are in `docs/`.
+- Repository / how to run it: https://github.com/soumit1803063/InvoiceExtractionAssignment — one command, `python run.py`; setup is in `README.md`. Screenshots of it running are attached with this submission.
 
 ## 1. Understanding the request
 
@@ -11,7 +11,7 @@ The email asks for AI that reads invoices so staff stop typing them by hand. Tha
 
 I do not think extraction is the problem worth solving. The sentence that matters most is the one about nearly paying the same invoice twice. Manual entry is slow, but it has a human looking at every number. Automating extraction without replacing that judgement removes the only control the process currently has, and it removes it in front of a system that cannot be corrected: the accounting API has no update and no per-record delete, so a wrong registration is permanent.
 
-So the problem I set out to solve is: **get invoices into the accounting system without ever putting a wrong one in.** Extraction is a component of that, not the goal. The centre of the build is the verification layer and the human gate in front of registration. Speed is what is left over once correctness is guaranteed, and on the machine-readable invoices it is a rounding error anyway.
+So the problem I set out to solve is: **get invoices into the accounting system without ever putting a wrong one in.** Extraction is a component of that, not the goal. The centre of the build is the verification layer that decides which invoices a human ever has to look at. Speed is what is left over once correctness is guaranteed, and on the machine-readable invoices it is a rounding error anyway.
 
 ## 2. What you would have asked the client
 
@@ -21,7 +21,7 @@ So the problem I set out to solve is: **get invoices into the accounting system 
 | What should happen when a supplier is not in the partner master? | Hold it for a human; do not attempt registration. | The API rejects it and offers no way to onboard a supplier. This is an operational gap, not an extraction failure. |
 | Who may approve a registration, and is one approval enough? | Anyone using the review screen; one approval. | No role information exists in the brief. Flagged as the first thing to fix before real use. |
 | Is a handwritten correction on an invoice authoritative? | No. Extract the printed values; show the handwriting to the reviewer and let them decide. | One sample carries a handwritten bank-account change. Treating handwriting as data would let anyone with a pen redirect a payment. |
-| How current must the accounting system be — same day, or is a queue acceptable? | A queue is acceptable; nothing auto-registers. | Month-end close is the stated pain, which is a batch process, not a real-time one. |
+| How current must the accounting system be — same day, or is a queue acceptable? | A queue is acceptable, and an invoice that passes every check may file itself. | Month-end close is the stated pain, which is a batch process. Holding a provably correct invoice for a signature adds delay without adding safety; the checks are the gate, not the click. |
 
 ## 3. Scoping decisions
 
@@ -33,7 +33,7 @@ Ingestion for all three input shapes in the sample set, routed by what each file
 
 I cut anything that did not reduce the chance of a wrong registration.
 
-No automatic correction of anything — no skew or rotation correction, no re-processing of a poor scan at higher resolution, no fuzzy supplier-name matching. Each replaces a human decision with a guess, and a guess in front of an unfixable ledger is the failure mode I am trying to remove.
+No correction that changes a number. Page orientation is corrected, because turning a sideways scan upright is a lossless 90° transpose that alters no pixel and no figure. Supplier matching does fall back to the master's own registered names and aliases when the registration number is misread, but only to an unambiguous single match — two candidates means no match and a human decides. What I refused is anything that silently rewrites an amount: no re-scanning at higher resolution to “improve” a total, no guessing a missing line. A guess in front of an unfixable ledger is the failure mode I am trying to remove.
 
 No multi-invoice PDF splitting, no batch-scanner support, no handling for documents beyond a few pages. The sample set tops out at two pages, so anything built for larger batches would be untested code shipped on speculation.
 
@@ -43,19 +43,21 @@ No automated test suite. Verification of the model output ships as product code 
 
 ## 4. Design and technology choices
 
-The flow: a file is classified by inspecting it, extracted by the reader appropriate to its class, normalised, verified arithmetically, and then either held for a human or made available to register. Registration is always a deliberate human action.
+The flow: a file is classified by inspecting it, extracted by the reader appropriate to its class, normalised, verified arithmetically, and then either held for a human or filed. An invoice that passes every check files itself; an invoice that fails even one is held, and the person who fixes it presses the button. The gate is the checks, not the click — a human rubber-stamping a screen of numbers they cannot recompute is theatre, and the accounting system re-derives those numbers anyway.
 
 **Routing before extraction.** A PDF is checked for a real text layer. If it has one, the text is parsed directly and no model is involved at all. Three of the twelve invoices are in this class, and they extract in under a tenth of a second at zero cost, with the unit column read straight out of the document. Sending a machine-readable document to a vision model would be slower, cost money, and introduce a misread where none previously existed.
 
 **Vision for the rest.** The remaining nine are photographs or a scan with no text. These go to a vision model with a fixed output schema, so the model returns typed structured data rather than prose that has to be parsed.
 
-**Which model, and why.** I used `nvidia/nemotron-nano-12b-v2-vl` through OpenRouter's free tier as the primary reader, with Google's `gemini-3.7-flash` free tier as a fallback. The brief permits a free tier and there are only twelve invoices, so paid capacity buys nothing here. I tested the first model I considered before building on it and found it was text-only and physically incapable of reading an image, which would have failed nine of twelve invoices. Checking that before integration rather than after is the only reason it did not become a rewrite.
+**Which model, and why.** Free tiers throughout: the brief permits them and twelve invoices buy nothing from paid capacity. Reading a page is a chain of four free OpenRouter vision models, tried best first (`google/gemma-4-31b-it`, `nvidia/nemotron-3-nano-omni`, `google/gemma-4-26b-a4b-it`, `nvidia/nemotron-nano-12b-v2-vl`); turning that text into typed fields is a second chain ending at Google's `gemini-3.7-flash`. The chain exists because free tiers fail constantly and specifically: one model I picked returns 403 because it is only served to agentic harnesses, and the daily free quota runs out mid-run. Both happened during testing, and the run continued on the next model. I tested every model against the real schema before trusting it — only one of the five free models I first shortlisted actually returns structured output rather than prose, and the one I had ranked first could not be called at all.
 
-**What I decided against.** OCR followed by a language model, because the vision model reads Japanese layout directly and an OCR stage adds a failure mode without adding information. A dedicated orientation classifier, because it is a heavyweight dependency and no sample invoice is actually rotated. Redacting personal data before sending it to the model, because the tax registration number is the field used to identify the supplier — redacting it would break the matching the system exists to do.
+**What I decided against.** OCR followed by a language model, because the vision model reads Japanese layout directly and an OCR stage adds a failure mode without adding information. Redacting personal data before sending it to the model, because the tax registration number is the field used to identify the supplier — redacting it would break the matching the system exists to do.
+
+**Orientation, and the rule it had to obey.** None of the twelve samples is rotated, but a copier feeds pages in sideways and that is the case this has to survive. Tesseract detects the angle when it is installed, and the page is turned by an exact 90° transpose — a pixel permutation, not a resample, because degrading the image degrades the extraction that depends on it. An upright page is returned as the original bytes, untouched. If Tesseract is absent or errors, the original page is used and nothing else changes. My first version of this was worse than useless: it borrowed a brute-force search that rotated an already-upright invoice by 180° on a 0.57-confidence reading. Measuring all twelve showed a clean separation — upright pages always report 0, genuine rotations report the right angle at confidence above 3.8, and everything unreliable sits below 1.0 — so the search came out and a single confidence threshold went in.
 
 **Frontend.** React, built to static files and served by the same process on the same port, so the whole system starts with one command and needs no Node toolchain to run.
 
-**A guardrail on model input.** An invoice is a document supplied by someone outside the company, and its text can be written to address the model rather than the reader. Because the human gate reviews the model's output, a successful instruction injection would be reviewed rather than caught. Input is screened, and anything rejected is routed to a human rather than skipped.
+**A guardrail on model input.** An invoice is a document supplied by someone outside the company, and its text can be written to address the model rather than the reader. Because a clean invoice files itself, a successful instruction injection would not meet a human at all. Input is screened, and anything rejected is routed to a human rather than skipped.
 
 ## 5. How you used AI, and how you checked it
 
@@ -65,11 +67,11 @@ Only the reading of a page into fields. Every downstream decision — whether th
 
 **How you verified the output**
 
-Seven checks run on every invoice, none of which consult the model.
+Ten checks run on every invoice, none of which consult the model. Seven are scored on the review screen; three (tax code present, tax code known, date order) exist to explain a failure rather than to be counted twice.
 
 The one that does the real work is the cross-foot tied to the printed total: line amounts are summed to a subtotal, tax is recomputed per tax code on that code's subtotal and rounded down, the two are added, and the result must equal the total **printed on the page**. I chose this check because it catches the failure that is otherwise invisible — a dropped line item. If a model misses a row, every remaining number is individually plausible and internally consistent; only the tie to the printed grand total reveals something is missing. Recomputing the total from the extracted lines alone would agree with itself and prove nothing.
 
-The others: the supplier must match the master by registration number; the invoice must not duplicate one already recorded locally; the due date may not precede the issue date; every field the accounting system requires must be present, including a unit on every line; tax codes must be known; and amounts must be whole yen. An invoice failing any check is held for a human. Nothing is registered automatically unless all of them pass.
+The others: the supplier must match the master — by registration number, then partner code, then the master's own name and aliases; the invoice must not duplicate one already recorded locally; the due date may not precede the issue date; every field the accounting system requires must be present, including a unit on every line; tax codes must be known; and amounts must be whole yen. An invoice failing any check is held for a human. Nothing is registered automatically unless all of them pass.
 
 **A case where the AI got it wrong**
 

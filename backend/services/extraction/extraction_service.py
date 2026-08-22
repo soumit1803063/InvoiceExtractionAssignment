@@ -42,7 +42,8 @@ class ExtractionService:
         orientation: OrientationCorrector,
     ) -> None:
         self._dpi = settings.render_dpi
-        self._transcribers = transcribers.fallback_chain()
+        self._transcribers = transcribers.model_chain()
+        self._plain_transcriber = transcribers.plain()
         self._agents = agents.fallback_chain()
         self._orientation = orientation
 
@@ -55,11 +56,27 @@ class ExtractionService:
             return MdExtractionResult(error_message=self.reason_for(error))
 
     def _convert_file_to_markdown(self, path: PathLike) -> str:
-        pages = []
-        for page_image in self._to_page_images(path):
-            heading = PAGE_HEADING.format(page_number=page_image.page_number)
-            pages.append(heading + self._transcribe_page(page_image))
-        return PAGE_SEPARATOR.join(pages)
+        if self.classify(path) == SourceKind.TEXT_PDF:
+            try:
+                return self._read_without_a_model(path)
+            except IntakeError:
+                pass
+        try:
+            pages = []
+            for page_image in self._to_page_images(path):
+                heading = PAGE_HEADING.format(page_number=page_image.page_number)
+                pages.append(heading + self._transcribe_page(page_image))
+            return PAGE_SEPARATOR.join(pages)
+        except IntakeError:
+            return self._read_without_a_model(path)
+
+    def _read_without_a_model(self, path: PathLike) -> str:
+        page = MdPageImage(
+            page_number=1,
+            media_type=Utils.media_type_for_path(path),
+            content=Utils.read_bytes(path),
+        )
+        return self._plain_transcriber.to_markdown(page)
 
     def _transcribe_page(self, page: MdPageImage) -> str:
         failures = []

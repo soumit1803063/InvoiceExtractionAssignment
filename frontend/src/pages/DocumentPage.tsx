@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { reprocessDocument } from '../api/documents';
 import { DocumentDetail } from '../components/DocumentDetail';
+import { SourcePreview } from '../components/SourcePreview';
 import { MessageBanner } from '../components/MessageBanner';
 import { navigateTo } from '../hooks/useHashRoute';
 import { useWords } from '../i18n';
@@ -14,8 +13,6 @@ interface DocumentPageProps {
 }
 
 export function DocumentPage({ document, documents, isLoading, onDocumentUpdated }: DocumentPageProps) {
-  const [isReprocessing, setIsReprocessing] = useState(false);
-  const [reprocessError, setReprocessError] = useState<string | null>(null);
   const words = useWords();
 
   if (!document) {
@@ -31,23 +28,11 @@ export function DocumentPage({ document, documents, isLoading, onDocumentUpdated
     );
   }
 
-  const activeDocument = document;
   const duplicateSourceName = document.verification.duplicate_of
     ? (documents.find((candidate) => candidate.document_id === document.verification.duplicate_of)
         ?.source_name ?? null)
     : null;
 
-  async function reprocess() {
-    setIsReprocessing(true);
-    setReprocessError(null);
-    try {
-      onDocumentUpdated(await reprocessDocument(activeDocument.document_id));
-    } catch (cause) {
-      setReprocessError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setIsReprocessing(false);
-    }
-  }
 
   return (
     <div className="page">
@@ -55,32 +40,36 @@ export function DocumentPage({ document, documents, isLoading, onDocumentUpdated
         <button
           type="button"
           className="button button--ghost"
-          onClick={() => navigateTo(document.status === 'registered' ? '/logged' : '/queue')}
+          onClick={() =>
+            navigateTo(
+              document.status === 'registered'
+                ? '/logged'
+                : document.status === 'processing'
+                  ? '/reading'
+                  : '/queue'
+            )
+          }
         >
           ← {document.status === 'registered' ? words.backLoggedList : words.backQueue}
         </button>
-        <button
-          type="button"
-          className="button button--ghost"
-          disabled={isReprocessing || document.status === 'processing'}
-          onClick={reprocess}
-        >
-          {isReprocessing ? words.reprocessing : words.reprocess}
-        </button>
       </nav>
 
-      {reprocessError ? (
-        <MessageBanner tone="danger" title={words.reprocessingDidNotStart}>
-          <p>{reprocessError}</p>
-        </MessageBanner>
-      ) : null}
 
-      <DocumentDetail
-        key={document.document_id}
-        document={document}
-        duplicateSourceName={duplicateSourceName}
-        onDocumentUpdated={onDocumentUpdated}
-      />
+      {document.status === 'processing' ? (
+        <>
+          <MessageBanner tone="info" title={words.stillReadingDocument}>
+            <p>{words.fieldsAppearWhenReadingFinishes}</p>
+          </MessageBanner>
+          <SourcePreview documentId={document.document_id} sourceName={document.source_name} />
+        </>
+      ) : (
+        <DocumentDetail
+          key={document.document_id}
+          document={document}
+          duplicateSourceName={duplicateSourceName}
+          onDocumentUpdated={onDocumentUpdated}
+        />
+      )}
     </div>
   );
 }

@@ -3,7 +3,6 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
-from ..container import ApplicationContainer
 from ..core import (
     DbDocument,
     ErrorMessage,
@@ -14,13 +13,13 @@ from ..core import (
     ResRegister,
     Utils,
 )
+from ..services.accounting_service import HttpAccountingGateway
+from ..services.document_service import InvoiceIntakeService
 from ..services.extraction import SUPPORTED_SUFFIXES
 
 
-def build_router(container: ApplicationContainer) -> APIRouter:
+def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -> APIRouter:
     router = APIRouter(prefix="/api")
-    intake = container.intake_service
-    gateway = container.accounting_gateway
 
     @router.get("/health", response_model=ResHealth)
     def read_health() -> ResHealth:
@@ -69,12 +68,6 @@ def build_router(container: ApplicationContainer) -> APIRouter:
             raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
         return document
 
-    @router.post("/documents/{document_id}/reprocess", response_model=DbDocument)
-    def reprocess_document(document_id: str) -> DbDocument:
-        document = intake.reprocess(document_id)
-        if document is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
-        return document
 
     @router.post("/documents/{document_id}/register", response_model=ResRegister)
     def register_document(document_id: str) -> ResRegister:

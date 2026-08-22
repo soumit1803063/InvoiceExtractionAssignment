@@ -16,7 +16,7 @@ PathLike = Union[Path, str]
 CONNECTION_TIMEOUT_SECONDS = 30.0
 
 
-class SqlModelDocumentRepository:
+class DocumentRepository:
 
     def __init__(self, database_path: PathLike) -> None:
         self._database_path = Path(database_path)

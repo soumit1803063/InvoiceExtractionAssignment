@@ -1,8 +1,12 @@
 from collections.abc import Iterator, Sequence
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from ..utils import Utils
 from .db import DbDocument, DbInvoiceFields, DbRegistration
 from .fields import Rate
+
+
+MINIMUM_ALIAS_LENGTH = 3
 
 
 class ResTaxRate(BaseModel):
@@ -117,7 +121,42 @@ class PartnerDirectory:
                 return partner
         return None
 
+    def by_printed_name(self, supplier_name: Optional[str]) -> Optional[ResPartner]:
+        printed = PartnerDirectory._comparable(supplier_name)
+        if not printed:
+            return None
+        exact = [
+            partner
+            for partner in self._partners
+            if printed in PartnerDirectory._known_names(partner)
+        ]
+        if len(exact) == 1:
+            return exact[0]
+        contained = [
+            partner
+            for partner in self._partners
+            if any(
+                len(name) >= MINIMUM_ALIAS_LENGTH and name in printed
+                for name in PartnerDirectory._known_names(partner)
+            )
+        ]
+        return contained[0] if len(contained) == 1 else None
+
     def match(self, fields: DbInvoiceFields) -> Optional[ResPartner]:
-        return self.by_registration_number(fields.registration_number) or self.by_code(
-            fields.partner_code
+        return (
+            self.by_registration_number(fields.registration_number)
+            or self.by_code(fields.partner_code)
+            or self.by_printed_name(fields.supplier_name)
         )
+
+    @staticmethod
+    def _known_names(partner: ResPartner) -> set[str]:
+        return {
+            PartnerDirectory._comparable(name)
+            for name in [partner.name, *partner.aliases]
+            if PartnerDirectory._comparable(name)
+        }
+
+    @staticmethod
+    def _comparable(value: Optional[str]) -> str:
+        return "".join(Utils.normalize_full_width_to_ascii(value or "").split()).casefold()

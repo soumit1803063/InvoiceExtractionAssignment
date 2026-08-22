@@ -34,11 +34,11 @@ class Settings(BaseSettings):
     gemini_api_key: StrictStr = Field(default="", alias="GEMINI_API_KEY")
     gemini_model: StrictStr = Field(default="gemini-3.7-flash", alias="GEMINI_MODEL")
 
-    openrouter_inkling: StrictStr = Field(
-        default="thinkingmachines/inkling:free", alias="OPENROUTER_INKLING"
+    openrouter_gemma_31b: StrictStr = Field(
+        default="google/gemma-4-31b-it:free", alias="OPENROUTER_GEMMA_31B"
     )
-    openrouter_gemma: StrictStr = Field(
-        default="google/gemma-4-31b-it:free", alias="OPENROUTER_GEMMA"
+    openrouter_gemma_26b: StrictStr = Field(
+        default="google/gemma-4-26b-a4b-it:free", alias="OPENROUTER_GEMMA_26B"
     )
     openrouter_nemotron_omni: StrictStr = Field(
         default="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",

@@ -15,11 +15,11 @@ from ..core import (
     DbStoredDocument,
     DbVerification,
     DocumentStatus,
-    IDocumentRepository,
     PartnerDirectory,
     TaxRateTable,
     Utils,
 )
+from ..repositories import DocumentRepository
 from ..settings import Settings
 from .accounting_service import ReferenceDataProvider, ReqRegistrationFactory
 from .extraction import SUPPORTED_SUFFIXES, ExtractionService
@@ -64,7 +64,7 @@ class InvoiceIntakeService:
     def __init__(
         self,
         settings: Settings,
-        repository: IDocumentRepository,
+        repository: DocumentRepository,
         reference_data: ReferenceDataProvider,
         extraction: ExtractionService,
         validation: ValidationService,
@@ -176,18 +176,6 @@ class InvoiceIntakeService:
         document = self._rebuild_and_save(stored, outcome.fields, kept, extra_reasons=reasons)
         return self._register_when_clean(document)
 
-    def reprocess(self, document_id: str) -> Optional[DbDocument]:
-        stored = self._repository.get(document_id)
-        if stored is None:
-            return None
-        document = stored.document.model_copy(
-            update={"status": DocumentStatus.PROCESSING, "blocking_reasons": []}
-        )
-        self._repository.save(
-            stored.model_copy(update={"document": document, "updated_at": self._utc_now_iso()})
-        )
-        self._start_processing(document_id)
-        return document
 
     def scan(self) -> list[DbDocument]:
         self._reference_data.refresh(force=True)
