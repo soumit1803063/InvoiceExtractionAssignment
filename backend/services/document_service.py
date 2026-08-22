@@ -16,16 +16,14 @@ from ..core import (
     DbVerification,
     DocumentStatus,
     IDocumentRepository,
-    MdVerificationContext,
     PartnerDirectory,
-    SourceKind,
     TaxRateTable,
     Utils,
 )
 from ..settings import Settings
 from .accounting_service import ReferenceDataProvider, ReqRegistrationFactory
 from .extraction import SUPPORTED_SUFFIXES, ExtractionService
-from .validation import ReportReader, VerificationService
+from .validation import ValidationService
 
 PathLike = Union[Path, str]
 Preview = tuple[Path, str]
@@ -69,13 +67,13 @@ class InvoiceIntakeService:
         repository: IDocumentRepository,
         reference_data: ReferenceDataProvider,
         extraction: ExtractionService,
-        verification: VerificationService,
+        validation: ValidationService,
     ) -> None:
         self._settings = settings
         self._repository = repository
         self._reference_data = reference_data
         self._extraction = extraction
-        self._verification = verification
+        self._validation = validation
         self._registration_lock = threading.Lock()
 
     @staticmethod
@@ -199,42 +197,6 @@ class InvoiceIntakeService:
             self._enqueue(path)
         return self.list_documents()
 
-    def _build_document(
-        self,
-        document_id: str,
-        created_at: str,
-        source_name: str,
-        source_kind: SourceKind,
-        fields: DbInvoiceFields,
-        registration: Optional[DbRegistration],
-        extra_reasons: Sequence[str] = (),
-    ) -> DbDocument:
-        partner, fields = self._reference_data.resolve_partner(fields)
-        duplicate_of = self._repository.find_duplicate(
-            fields.partner_code, fields.invoice_number, document_id
-        )
-        report = self._verification.verify(
-            MdVerificationContext(
-                fields=fields,
-                tax_table=self._reference_data.tax_table(),
-                partner_matched=partner is not None,
-                duplicate_of=duplicate_of,
-                partner_lookup_reason=self._reference_data.lookup_failure_reason,
-            )
-        )
-        blocking_reasons = list(extra_reasons) + ReportReader.blocking_reasons(report)
-        return DbDocument(
-            document_id=document_id,
-            created_at=created_at,
-            source_name=source_name,
-            source_kind=source_kind,
-            fields=fields,
-            verification=ReportReader.to_verification(report),
-            status=DocumentPolicy.resolve_status(blocking_reasons, registration),
-            blocking_reasons=blocking_reasons,
-            registration=registration,
-        )
-
     def _rebuild_and_save(
         self,
         stored: DbStoredDocument,
@@ -242,25 +204,9 @@ class InvoiceIntakeService:
         registration: Optional[DbRegistration],
         extra_reasons: Sequence[str] = (),
     ) -> DbDocument:
-        previous = stored.document
-        document = self._build_document(
-            document_id=previous.document_id,
-            created_at=previous.created_at,
-            source_name=previous.source_name,
-            source_kind=previous.source_kind,
-            fields=fields,
-            registration=registration,
-            extra_reasons=extra_reasons,
+        return self._validation.validate(
+            stored, fields, registration, self._utc_now_iso(), extra_reasons
         )
-        self._repository.save(
-            DbStoredDocument(
-                document=document,
-                source_path=stored.source_path,
-                created_at=stored.created_at,
-                updated_at=self._utc_now_iso(),
-            )
-        )
-        return document
 
     def update_fields(self, document_id: str, fields: DbInvoiceFields) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)

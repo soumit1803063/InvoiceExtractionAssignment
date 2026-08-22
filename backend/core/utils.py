@@ -181,6 +181,13 @@ class Utils:
         return Utils.ERA_BASE_YEARS[era_name] + era_year
 
     @staticmethod
+    def parse_iso_date(value: Optional[str]) -> Optional[date]:
+        try:
+            return date.fromisoformat(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
     def parse_japanese_date(value: object) -> Optional[str]:
         if value is None:
             return None
