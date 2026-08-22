@@ -1,10 +1,10 @@
 from functools import cached_property
 
-from .core import IAccountingGateway, IDocumentRepository, ITranscriber
+from .core import IAccountingGateway, IDocumentRepository
 from .services.extraction import (
     Agents,
     ExtractionService,
-    MarkitdownTranscriber,
+    Transcribers,
     OrientationCorrector,
 )
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
@@ -36,8 +36,8 @@ class ApplicationContainer:
         return SqlModelDocumentRepository(self._settings.database_path)
 
     @cached_property
-    def transcriber(self) -> ITranscriber:
-        return MarkitdownTranscriber(self._settings)
+    def transcribers(self) -> Transcribers:
+        return Transcribers(self._settings)
 
     @cached_property
     def agents(self) -> Agents:
@@ -50,7 +50,7 @@ class ApplicationContainer:
     @cached_property
     def extraction_service(self) -> ExtractionService:
         return ExtractionService(
-            self._settings, self.transcriber, self.agents, self.orientation
+            self._settings, self.transcribers, self.agents, self.orientation
         )
 
     @cached_property

@@ -11,8 +11,14 @@ DEFAULT_INVOICE_DIRECTORY = "invoices"
 DEFAULT_ACCOUNTING_BASE_URL = "http://127.0.0.1:8080"
 IPV6_AMBIGUOUS_HOST = "//localhost"
 IPV4_LOOPBACK_HOST = "//127.0.0.1"
-DEFAULT_TRANSCRIPTION_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free"
-DEFAULT_STRUCTURING_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free"
+DEFAULT_OPENROUTER_INKLING = "thinkingmachines/inkling:free"
+DEFAULT_OPENROUTER_GEMMA = "google/gemma-4-31b-it:free"
+DEFAULT_OPENROUTER_NEMOTRON_OMNI = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+DEFAULT_OPENROUTER_NEMOTRON_VL = "nvidia/nemotron-nano-12b-v2-vl:free"
+DEFAULT_OPENROUTER_NEMOTRON_SUPER = "nvidia/nemotron-3-super-120b-a12b:free"
+DEFAULT_OPENROUTER_GLM = "z-ai/glm-5.2:free"
+DEFAULT_OPENROUTER_NEMOTRON_NANO = "nvidia/nemotron-nano-9b-v2:free"
+DEFAULT_OPENROUTER_DOTS_NOTE = "dots-studio/dots-3-note-preview:free"
 DEFAULT_RENDER_DPI = 600
 DEFAULT_MODEL_TIMEOUT_SECONDS = 180
 DEFAULT_ACCOUNTING_TIMEOUT_SECONDS = 10
@@ -76,9 +82,27 @@ class Settings(BaseSettings):
     openrouter_base_url: StrictStr = Field(
         default=DEFAULT_OPENROUTER_BASE_URL, alias="OPENROUTER_BASE_URL"
     )
-    transcription_model: StrictStr = Field(default=DEFAULT_TRANSCRIPTION_MODEL, alias="TRANSCRIPTION_MODEL")
-    structuring_model: StrictStr = Field(default=DEFAULT_STRUCTURING_MODEL, alias="STRUCTURING_MODEL")
     gemini_model: StrictStr = Field(default=DEFAULT_GEMINI_MODEL, alias="GEMINI_MODEL")
+    openrouter_nemotron_super: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_NEMOTRON_SUPER, alias="OPENROUTER_NEMOTRON_SUPER"
+    )
+    openrouter_glm: StrictStr = Field(default=DEFAULT_OPENROUTER_GLM, alias="OPENROUTER_GLM")
+    openrouter_nemotron_nano: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_NEMOTRON_NANO, alias="OPENROUTER_NEMOTRON_NANO"
+    )
+    openrouter_dots_note: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_DOTS_NOTE, alias="OPENROUTER_DOTS_NOTE"
+    )
+    openrouter_inkling: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_INKLING, alias="OPENROUTER_INKLING"
+    )
+    openrouter_gemma: StrictStr = Field(default=DEFAULT_OPENROUTER_GEMMA, alias="OPENROUTER_GEMMA")
+    openrouter_nemotron_omni: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_NEMOTRON_OMNI, alias="OPENROUTER_NEMOTRON_OMNI"
+    )
+    openrouter_nemotron_vl: StrictStr = Field(
+        default=DEFAULT_OPENROUTER_NEMOTRON_VL, alias="OPENROUTER_NEMOTRON_VL"
+    )
     render_dpi: EnvInt = Field(default=DEFAULT_RENDER_DPI, alias="RENDER_DPI")
     model_timeout_seconds: EnvInt = Field(
         default=DEFAULT_MODEL_TIMEOUT_SECONDS, alias="MODEL_TIMEOUT_SECONDS"
