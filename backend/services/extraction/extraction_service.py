@@ -20,6 +20,7 @@ from ...core import (
     coerce_tax_code,
 )
 from .agents import Agents
+from .orientation import OrientationCorrector
 
 PathLike = Union[Path, str]
 
@@ -33,11 +34,16 @@ PAGE_HEADING = "<!-- page {page_number} -->\n"
 class ExtractionService:
 
     def __init__(
-        self, settings: Settings, transcriber: ITranscriber, agents: Agents
+        self,
+        settings: Settings,
+        transcriber: ITranscriber,
+        agents: Agents,
+        orientation: OrientationCorrector,
     ) -> None:
         self._dpi = settings.render_dpi
         self._transcriber = transcriber
         self._agents = (agents.openrouter(), agents.gemini())
+        self._orientation = orientation
 
     def extract(self, file_path: PathLike) -> MdExtractionResult:
         try:
@@ -58,11 +64,14 @@ class ExtractionService:
     def _to_page_images(self, path: PathLike) -> Sequence[MdPageImage]:
         media_type = Utils.media_type_for_path(path)
         if media_type != Utils.PDF_MEDIA_TYPE:
-            return (
-                MdPageImage(page_number=1, media_type=media_type, content=Utils.read_bytes(path)),
+            page = MdPageImage(
+                page_number=1, media_type=media_type, content=Utils.read_bytes(path)
             )
+            return (self._orientation.upright(page),)
         return tuple(
-            MdPageImage(page_number=number, media_type=Utils.PNG_MEDIA_TYPE, content=png)
+            self._orientation.upright(
+                MdPageImage(page_number=number, media_type=Utils.PNG_MEDIA_TYPE, content=png)
+            )
             for number, png in enumerate(Utils.iter_pdf_page_pngs(path, self._dpi), start=1)
         )
 

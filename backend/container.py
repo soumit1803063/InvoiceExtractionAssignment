@@ -5,6 +5,7 @@ from .services.extraction import (
     Agents,
     ExtractionService,
     MarkitdownTranscriber,
+    OrientationCorrector,
 )
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
 from .repositories import SqlModelDocumentRepository
@@ -43,8 +44,14 @@ class ApplicationContainer:
         return Agents(self._settings)
 
     @cached_property
+    def orientation(self) -> OrientationCorrector:
+        return OrientationCorrector(self._settings)
+
+    @cached_property
     def extraction_service(self) -> ExtractionService:
-        return ExtractionService(self._settings, self.transcriber, self.agents)
+        return ExtractionService(
+            self._settings, self.transcriber, self.agents, self.orientation
+        )
 
     @cached_property
     def verification_service(self) -> VerificationService:
