@@ -10,7 +10,7 @@ from .services.extraction import (
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
 from .repositories import SqlModelDocumentRepository
 from .services.document_service import InvoiceIntakeService
-from .services.validation import VerificationService
+from .services.validation import ValidationService
 from .settings import Settings
 
 
@@ -54,8 +54,8 @@ class ApplicationContainer:
         )
 
     @cached_property
-    def verification_service(self) -> VerificationService:
-        return VerificationService()
+    def validation_service(self) -> ValidationService:
+        return ValidationService(self.document_repository, self.reference_data)
 
     @cached_property
     def reference_data(self) -> ReferenceDataProvider:
@@ -68,5 +68,5 @@ class ApplicationContainer:
             repository=self.document_repository,
             reference_data=self.reference_data,
             extraction=self.extraction_service,
-            verification=self.verification_service,
+            validation=self.validation_service,
         )
