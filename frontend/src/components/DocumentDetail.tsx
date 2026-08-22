@@ -17,7 +17,6 @@ import type { InvoiceDocument } from '../types/contract';
 import { isIntegerInputValid, isIsoDateValid } from '../utils/parsing';
 import { AccountingReference } from './AccountingReference';
 import { EditableTextField } from './EditableTextField';
-import { ExcludedNotesNotice } from './ExcludedNotesNotice';
 import { LineItemsTable } from './LineItemsTable';
 import { MessageBanner } from './MessageBanner';
 import { RegisterPanel } from './RegisterPanel';
@@ -37,13 +36,12 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
   const [saveError, setSaveError] = useState<string | null>(null);
   const [wasSaved, setWasSaved] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [isReopened, setIsReopened] = useState(false);
   const words = useWords();
   const [registerTransportError, setRegisterTransportError] = useState<string | null>(null);
 
   const isProcessing = document.status === 'processing';
   const isRegistered = document.status === 'registered';
-  const isReadOnly = isProcessing || (isRegistered && !isReopened);
+  const isReadOnly = isProcessing || isRegistered;
   const draftProblems = collectDraftProblems(draft, words);
   const hasUnsavedChanges = hasDraftChanged(draft, document.fields);
   const missingUnitCount = countLinesMissingUnit(draft);
@@ -127,7 +125,7 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
             {words.revert}
           </button>
           <button type="button" className="button button--primary" onClick={saveDraft} disabled={!canSave}>
-            {isSaving ? words.saving : words.saveCorrections}
+            {isSaving ? words.saving : words.saveAndReprocess}
           </button>
         </div>
       </header>
@@ -140,31 +138,6 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
         </MessageBanner>
       ) : null}
 
-      {isRegistered ? (
-        <MessageBanner
-          tone={isReopened ? 'warning' : 'info'}
-          title={
-            isReopened
-              ? words.reOpenedCorrection
-              : words.alreadyAcknowledgedByAccountingSystem
-          }
-          action={
-            isReopened ? null : (
-              <button type="button" className="button button--ghost" onClick={() => setIsReopened(true)}>
-                {words.reOpenCorrection}
-              </button>
-            )
-          }
-        >
-          <p>
-            {words.registeredAs} <code>{document.registration?.accounting_id ?? '—'}</code>.{' '}
-            {words.staysQueuePermanentlyNeverRead}
-          </p>
-          <p>
-            {words.accountingSystemHasNoUpdate}
-          </p>
-        </MessageBanner>
-      ) : null}
 
       {saveError ? (
         <MessageBanner tone="danger" title={words.correctionsWereNotSaved}>
@@ -192,8 +165,6 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
         </div>
 
         <div className="detail__column detail__column--data">
-          <ExcludedNotesNotice notes={document.fields.notes_excluded} />
-
           <section className="panel">
             <header className="panel__header">
               <h2 className="panel__title">

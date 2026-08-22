@@ -68,12 +68,6 @@ def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -
             raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
         return document
 
-    @router.post("/documents/{document_id}/reprocess", response_model=DbDocument)
-    def reprocess_document(document_id: str) -> DbDocument:
-        document = intake.reprocess(document_id)
-        if document is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
-        return document
 
     @router.post("/documents/{document_id}/register", response_model=ResRegister)
     def register_document(document_id: str) -> ResRegister:

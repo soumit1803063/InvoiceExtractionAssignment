@@ -56,6 +56,11 @@ class ExtractionService:
             return MdExtractionResult(error_message=self.reason_for(error))
 
     def _convert_file_to_markdown(self, path: PathLike) -> str:
+        if self.classify(path) == SourceKind.TEXT_PDF:
+            try:
+                return self._read_without_a_model(path)
+            except IntakeError:
+                pass
         try:
             pages = []
             for page_image in self._to_page_images(path):

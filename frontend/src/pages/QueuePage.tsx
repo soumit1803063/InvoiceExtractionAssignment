@@ -92,7 +92,9 @@ export function QueuePage({ documents, tab, isLoading }: QueuePageProps) {
           <DocumentList
             documents={visible}
             showRegistration={tab === 'logged'}
-            onSelectDocument={(documentId) => navigateTo(`/documents/${documentId}`)}
+            onSelectDocument={(documentId) =>
+              navigateTo(`/${tab === 'logged' ? 'log' : tab}/documents/${documentId}`)
+            }
           />
         ) : null}
       </section>

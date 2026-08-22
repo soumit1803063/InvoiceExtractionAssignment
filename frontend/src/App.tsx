@@ -58,8 +58,8 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
     [documentsResource.data, replaceData]
   );
 
-  const documentRoute = route.match(/^\/documents\/(.+)$/);
-  const activeRoute = documentRoute ? '/queue' : route;
+  const documentRoute = route.match(/^\/(queue|log|reading)\/documents\/(.+)$/);
+  const activeRoute = documentRoute ? `/${documentRoute[1] === 'log' ? 'logged' : documentRoute[1]}` : route;
 
   return (
     <div className="app">
@@ -109,7 +109,7 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
         {documentRoute ? (
           <DocumentPage
             document={
-              documents.find((candidate) => candidate.document_id === documentRoute[1]) ?? null
+              documents.find((candidate) => candidate.document_id === documentRoute[2]) ?? null
             }
             documents={documents}
             isLoading={documentsResource.isLoading}
