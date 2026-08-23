@@ -108,7 +108,7 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
             {words.revert}
           </button>
           <button type="button" className="button button--primary" onClick={saveDraft} disabled={!canSave}>
-            {isSaving ? words.saving : words.saveAndReprocess}
+            {isSaving ? words.saving : words.saveAndRevalidate}
           </button>
         </div>
       </header>

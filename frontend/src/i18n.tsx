@@ -140,7 +140,7 @@ export const DICTIONARY = {
   registrationStaysBlockedUntilEvery: { en: 'Registration stays blocked until every line has a unit.', ja: 'すべての明細に単位が入るまで登録できません。' },
   required: { en: 'required', ja: '必須' },
   result: { en: 'Result', ja: '結果' },
-  saveAndReprocess: { en: 'Save & Reprocess', ja: '保存して再処理' },
+  saveAndRevalidate: { en: 'Save & Revalidate', ja: '保存して再検証' },
   clearEverything: { en: 'Clear all', ja: 'すべて削除' },
   clearing: { en: 'Clearing…', ja: '削除中…' },
   clearEverythingConfirm: { en: 'Delete every document?', ja: 'すべての書類を削除しますか？' },
