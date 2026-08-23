@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, Strict
 from .db import DbInvoiceFields
 
 
-class MdPageImage(BaseModel):
+class MdPage(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 

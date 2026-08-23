@@ -74,6 +74,7 @@ class DbDocument(BaseModel):
     verification: DbVerification
     status: DocumentStatus
     blocking_reasons: list[StrictStr] = Field(default_factory=list)
+    extra_failures: list[StrictStr] = Field(default_factory=list)
     registration: Optional[DbRegistration] = None
 
 
@@ -102,4 +103,5 @@ class DbDocumentRow(SQLModel, table=True):
     verification_json: StrictStr
     status: StrictStr
     blocking_reasons_json: StrictStr
+    extra_failures_json: StrictStr
     registration_json: Optional[StrictStr] = Column(default=None)

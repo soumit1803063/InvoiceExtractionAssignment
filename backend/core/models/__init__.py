@@ -39,7 +39,7 @@ from .ai import (
 )
 from .md import (
     MdExtractionResult,
-    MdPageImage,
+    MdPage,
     MdRuleOutcome,
     MdTaxBreakdown,
     MdVerificationReport,
@@ -81,7 +81,7 @@ __all__ = [
     "IntakeError",
     "IsoDate",
     "MdExtractionResult",
-    "MdPageImage",
+    "MdPage",
     "MdRuleOutcome",
     "MdTaxBreakdown",
     "MdVerificationReport",

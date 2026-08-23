@@ -1,7 +1,7 @@
 from .agents import Agents
 from .extraction_service import SUPPORTED_SUFFIXES, ExtractionService
 from .orientation import OrientationCorrector
-from .transcriber import MarkitdownTranscriber, Transcribers
+from .transcriber import MarkitdownTranscriber, Transcribers, VisionTranscriber
 
 __all__ = [
     "SUPPORTED_SUFFIXES",
@@ -10,4 +10,5 @@ __all__ = [
     "MarkitdownTranscriber",
     "OrientationCorrector",
     "Transcribers",
+    "VisionTranscriber",
 ]

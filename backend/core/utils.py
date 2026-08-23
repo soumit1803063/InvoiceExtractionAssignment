@@ -214,6 +214,40 @@ class Utils:
         return None
 
 
+    CODE_FENCE = re.compile(r"^```[A-Za-z]*\s*|\s*```$")
+
+    @staticmethod
+    def parse_first_json_object(text: str) -> Optional[object]:
+        candidate = Utils.CODE_FENCE.sub("", text.strip())
+        for start, character in enumerate(candidate):
+            if character != "{":
+                continue
+            depth = 0
+            inside_text = False
+            escaped = False
+            for index in range(start, len(candidate)):
+                current = candidate[index]
+                if inside_text:
+                    if escaped:
+                        escaped = False
+                    elif current == "\\":
+                        escaped = True
+                    elif current == '"':
+                        inside_text = False
+                    continue
+                if current == '"':
+                    inside_text = True
+                elif current == "{":
+                    depth += 1
+                elif current == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(candidate[start : index + 1])
+                        except json.JSONDecodeError:
+                            break
+        return None
+
     @staticmethod
     def dump_json(value: object) -> str:
         return json.dumps(value, ensure_ascii=False)

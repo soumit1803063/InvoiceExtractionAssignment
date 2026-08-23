@@ -10,7 +10,6 @@ from ..core import (
     ResDocumentList,
     ResHealth,
     ResReferenceData,
-    ResRegister,
     Utils,
 )
 from ..services.accounting_service import HttpAccountingGateway
@@ -74,13 +73,6 @@ def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -
         return document
 
 
-    @router.post("/documents/{document_id}/register", response_model=ResRegister)
-    def register_document(document_id: str) -> ResRegister:
-        outcome = intake.register(document_id)
-        if outcome is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
-        document, registration = outcome
-        return ResRegister(document=document, registration=registration)
 
     @router.get("/documents/{document_id}/preview")
     def read_preview(document_id: str) -> FileResponse:

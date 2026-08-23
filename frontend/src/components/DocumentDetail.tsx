@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { registerDocument, saveDocumentFields } from '../api/documents';
+import { saveDocumentFields } from '../api/documents';
 import {
   EDITABLE_DATE_FIELD_LABELS,
   EDITABLE_MONEY_FIELD_LABELS,
@@ -19,7 +19,6 @@ import { AccountingReference } from './AccountingReference';
 import { EditableTextField } from './EditableTextField';
 import { LineItemsTable } from './LineItemsTable';
 import { MessageBanner } from './MessageBanner';
-import { RegisterPanel } from './RegisterPanel';
 import { SourcePreview } from './SourcePreview';
 import { StatusBadge } from './StatusBadge';
 import { VerificationPanel } from './VerificationPanel';
@@ -35,9 +34,7 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [wasSaved, setWasSaved] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
   const words = useWords();
-  const [registerTransportError, setRegisterTransportError] = useState<string | null>(null);
 
   const isProcessing = document.status === 'processing';
   const isRegistered = document.status === 'registered';
@@ -92,19 +89,6 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
     }
   }
 
-  async function submitRegistration() {
-    setIsRegistering(true);
-    setRegisterTransportError(null);
-    try {
-      const result = await registerDocument(document.document_id);
-      onDocumentUpdated(result.document);
-      setDraft(toEditableInvoice(result.document.fields));
-    } catch (cause) {
-      setRegisterTransportError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setIsRegistering(false);
-    }
-  }
 
   return (
     <div className="detail">
@@ -146,6 +130,17 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
 
       {wasSaved && !hasUnsavedChanges ? (
         <MessageBanner tone="success" title={words.correctionsSavedVerificationReRun} />
+      ) : null}
+
+      {document.extra_failures.length > 0 ? (
+        <MessageBanner tone="danger" title={words.otherFailures}>
+          <p>{words.otherFailuresExplained}</p>
+          <ul className="banner__list">
+            {document.extra_failures.map((failure) => (
+              <li key={failure}>{failure}</li>
+            ))}
+          </ul>
+        </MessageBanner>
       ) : null}
 
       {draftProblems.length > 0 ? (
@@ -218,13 +213,6 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
             onRemoveLine={removeLine}
           />
 
-          <RegisterPanel
-            document={document}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isRegistering={isRegistering}
-            transportError={registerTransportError}
-            onRegister={submitRegistration}
-          />
 
           {missingUnitCount > 0 && !isReadOnly ? (
             <MessageBanner tone="warning" title={`${missingUnitCount} ${words.unitsStillToFill}`}>

@@ -1,25 +1,16 @@
-import { buildApiUrl, requestBlob, requestJson, sendRequest, RequestFailedError } from './httpClient';
+import { buildApiUrl, requestBlob, requestJson } from './httpClient';
 import type {
   DocumentListResponse,
   HealthResponse,
   InvoiceDocument,
   InvoiceFieldsUpdate,
-  ReferenceData,
-  RegisterResponse
+  ReferenceData
 } from '../types/contract';
 
 function abortable(signal?: AbortSignal): RequestInit {
   return signal ? { signal } : {};
 }
 
-function hasRegisterShape(body: unknown): body is RegisterResponse {
-  return (
-    body !== null &&
-    typeof body === 'object' &&
-    'document' in (body as Record<string, unknown>) &&
-    'registration' in (body as Record<string, unknown>)
-  );
-}
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
   return requestJson<HealthResponse>('/health', abortable(signal));
@@ -54,19 +45,6 @@ export async function saveDocumentFields(
   });
 }
 
-export async function registerDocument(documentId: string, signal?: AbortSignal): Promise<RegisterResponse> {
-  const response = await sendRequest(`/documents/${encodeURIComponent(documentId)}/register`, {
-    method: 'POST',
-    ...abortable(signal)
-  });
-  if (hasRegisterShape(response.body)) {
-    return response.body;
-  }
-  throw new RequestFailedError(
-    `Registration did not return a result (status ${response.status}).`,
-    response.status
-  );
-}
 
 export async function clearDocuments(signal?: AbortSignal): Promise<DocumentListResponse> {
   return requestJson<DocumentListResponse>('/documents', { method: 'DELETE', ...abortable(signal) });

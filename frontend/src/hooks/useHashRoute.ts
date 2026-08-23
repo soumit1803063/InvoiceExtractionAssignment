@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export const DEFAULT_ROUTE = '/queue';
+export const DEFAULT_ROUTE = '/upload';
 
 function currentRoute(): string {
   return window.location.hash.replace(/^#/, '') || DEFAULT_ROUTE;

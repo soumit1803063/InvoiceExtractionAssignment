@@ -58,6 +58,7 @@ export interface InvoiceDocument {
   verification: Verification;
   status: DocumentStatus;
   blocking_reasons: string[];
+  extra_failures: string[];
   registration: Registration | null;
 }
 
