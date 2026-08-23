@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     openrouter_api_key: StrictStr = Field(default="", alias="OPENROUTER_API_KEY")
     gemini_api_key: StrictStr = Field(default="", alias="GEMINI_API_KEY")
     gemini_model: StrictStr = Field(default="gemini-3.7-flash", alias="GEMINI_MODEL")
+    openrouter_primary: StrictStr = Field(
+        default="google/gemini-2.5-flash-lite", alias="OPENROUTER_PRIMARY"
+    )
+    openrouter_deepseek: StrictStr = Field(
+        default="deepseek/deepseek-v3.2", alias="OPENROUTER_DEEPSEEK"
+    )
 
     openrouter_gemma_31b: StrictStr = Field(
         default="google/gemma-4-31b-it:free", alias="OPENROUTER_GEMMA_31B"
@@ -55,7 +61,7 @@ class Settings(BaseSettings):
         default="dots-studio/dots-3-note-preview:free", alias="OPENROUTER_DOTS_NOTE"
     )
 
-    render_dpi: int = Field(default=600, alias="RENDER_DPI")
+    render_dpi: int = Field(default=150, alias="RENDER_DPI")
     model_timeout_seconds: int = Field(default=180, alias="MODEL_TIMEOUT_SECONDS")
     orientation_enabled: bool = Field(default=True, alias="ORIENTATION_ENABLED")
     tesseract_path: StrictStr = Field(default="", alias="TESSERACT_PATH")

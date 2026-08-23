@@ -10,6 +10,7 @@ from ...core import (
     DbVerification,
     DocumentStatus,
     ErrorMessage,
+    MdModelUsage,
     MdRuleOutcome,
     RuleCode,
     TaxRateTable,
@@ -34,6 +35,7 @@ class ValidationService:
         registration: Optional[DbRegistration],
         updated_at: str,
         extra_reasons: Sequence[str] = (),
+        usage: Optional[MdModelUsage] = None,
     ) -> DbDocument:
         previous = stored.document
         partner, fields = self._reference_data.resolve_partner(fields)
@@ -55,6 +57,9 @@ class ValidationService:
             status=self._resolve_status(blocking_reasons + extra_failures, registration),
             blocking_reasons=blocking_reasons,
             extra_failures=extra_failures,
+            model_used=usage.model_used if usage else previous.model_used,
+            input_tokens=usage.input_tokens if usage else previous.input_tokens,
+            output_tokens=usage.output_tokens if usage else previous.output_tokens,
             registration=registration,
         )
         self._repository.save(

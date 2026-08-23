@@ -59,6 +59,9 @@ export interface InvoiceDocument {
   status: DocumentStatus;
   blocking_reasons: string[];
   extra_failures: string[];
+  model_used: string;
+  input_tokens: number;
+  output_tokens: number;
   registration: Registration | null;
 }
 

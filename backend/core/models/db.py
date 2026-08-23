@@ -75,6 +75,9 @@ class DbDocument(BaseModel):
     status: DocumentStatus
     blocking_reasons: list[StrictStr] = Field(default_factory=list)
     extra_failures: list[StrictStr] = Field(default_factory=list)
+    model_used: StrictStr = ""
+    input_tokens: StrictInt = 0
+    output_tokens: StrictInt = 0
     registration: Optional[DbRegistration] = None
 
 
@@ -104,4 +107,7 @@ class DbDocumentRow(SQLModel, table=True):
     status: StrictStr
     blocking_reasons_json: StrictStr
     extra_failures_json: StrictStr
+    model_used: StrictStr
+    input_tokens: StrictInt
+    output_tokens: StrictInt
     registration_json: Optional[StrictStr] = Column(default=None)

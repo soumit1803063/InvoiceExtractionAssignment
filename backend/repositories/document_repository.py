@@ -55,6 +55,9 @@ class DocumentRepository:
             status=str(document.status),
             blocking_reasons_json=Utils.dump_json(document.blocking_reasons),
             extra_failures_json=Utils.dump_json(document.extra_failures),
+            model_used=document.model_used,
+            input_tokens=document.input_tokens,
+            output_tokens=document.output_tokens,
             registration_json=(
                 Utils.dump_json(registration.model_dump()) if registration else None
             ),
@@ -71,6 +74,9 @@ class DocumentRepository:
             status=row.status,
             blocking_reasons=json.loads(row.blocking_reasons_json),
             extra_failures=json.loads(row.extra_failures_json),
+            model_used=row.model_used,
+            input_tokens=row.input_tokens,
+            output_tokens=row.output_tokens,
             registration=json.loads(row.registration_json) if row.registration_json else None,
         )
         return DbStoredDocument(

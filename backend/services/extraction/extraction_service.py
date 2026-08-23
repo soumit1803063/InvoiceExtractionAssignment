@@ -12,6 +12,7 @@ from ...core import (
     ErrorMessage,
     IntakeError,
     MdExtractionResult,
+    MdModelUsage,
     MdPage,
     MdTaxBreakdown,
     Utils,
@@ -51,25 +52,31 @@ class ExtractionService:
 
     def extract(self, file_path: PathLike) -> MdExtractionResult:
         try:
-            return MdExtractionResult(fields=ExtractionService.to_invoice_fields(self._read(file_path)))
+            invoice, usage = self._read(file_path)
         except IntakeError as error:
             return MdExtractionResult(error_message=self.reason_for(error))
+        return MdExtractionResult(
+            fields=ExtractionService.to_invoice_fields(invoice),
+            model_used=usage.model_used,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+        )
 
-    def _read(self, path: PathLike) -> AiInvoice:
+    def _read(self, path: PathLike) -> tuple[AiInvoice, MdModelUsage]:
         try:
             return self._read_pdf(path)
         except IntakeError:
             return self._read_images(path)
         
 
-    def _read_images(self, path: PathLike) -> AiInvoice:
+    def _read_images(self, path: PathLike) -> tuple[AiInvoice, MdModelUsage]:
         images = [
             Image(content=page.content, mime_type=page.media_type)
             for page in self._to_page_images(path)
         ]
         return self._structure(self._vision_agents, self._instructions, images)
 
-    def _read_pdf(self, path: PathLike) -> AiInvoice:
+    def _read_pdf(self, path: PathLike) -> tuple[AiInvoice, MdModelUsage]:
         page = MdPage(
             page_number=1,
             media_type=Utils.media_type_for_path(path),
@@ -96,24 +103,40 @@ class ExtractionService:
 
     def _structure(
         self, agents: Sequence[Agent], prompt: str, images: Optional[Sequence[Image]] = None
-    ) -> AiInvoice:
+    ) -> tuple[AiInvoice, MdModelUsage]:
         if not agents:
             raise IntakeError(ErrorCode.STRUCTURING_FAILED, ErrorMessage.NO_STRUCTURING_MODEL)
         failures = []
         for agent in agents:
             model_id = getattr(getattr(agent, "model", None), "id", "?")
             try:
-                answer = agent.run(prompt, images=list(images) if images else None).content
+                outcome = agent.run(prompt, images=list(images) if images else None)
             except Exception as error:
                 failures.append(f"{model_id}: {error}")
                 continue
-            if isinstance(answer, AiInvoice):
-                return answer
-            salvaged = ExtractionService._salvage(answer)
-            if salvaged is not None:
-                return salvaged
+            usage = ExtractionService._usage_of(outcome, model_id)
+            if usage.output_tokens == 0:
+                failures.append(f"{model_id}: {ErrorMessage.UNUSABLE_RESPONSE}: no output tokens")
+                continue
+            answer = outcome.content
+            invoice = answer if isinstance(answer, AiInvoice) else ExtractionService._salvage(answer)
+            if invoice is not None and not ExtractionService._is_empty(invoice):
+                return invoice, usage
             failures.append(f"{model_id}: {ErrorMessage.UNUSABLE_RESPONSE}: {str(answer)[:160]}")
         raise IntakeError(ErrorCode.STRUCTURING_FAILED, FAILURE_SEPARATOR.join(failures))
+
+    @staticmethod
+    def _is_empty(invoice: AiInvoice) -> bool:
+        return not invoice.lines and invoice.invoice_number is None and invoice.total_amount is None
+
+    @staticmethod
+    def _usage_of(outcome: object, model_id: str) -> MdModelUsage:
+        metrics = getattr(outcome, "metrics", None)
+        return MdModelUsage(
+            model_used=model_id,
+            input_tokens=int(getattr(metrics, "input_tokens", 0) or 0),
+            output_tokens=int(getattr(metrics, "output_tokens", 0) or 0),
+        )
 
     @staticmethod
     def _salvage(answer: object) -> Optional[AiInvoice]:

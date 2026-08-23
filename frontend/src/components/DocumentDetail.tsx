@@ -103,13 +103,17 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
           </p>
         </div>
         <div className="detail__actions">
-          {hasUnsavedChanges && !isReadOnly ? <span className="detail__dirty">{words.unsavedCorrections}</span> : null}
-          <button type="button" className="button button--ghost" onClick={revertDraft} disabled={!hasUnsavedChanges || isSaving}>
-            {words.revert}
-          </button>
-          <button type="button" className="button button--primary" onClick={saveDraft} disabled={!canSave}>
-            {isSaving ? words.saving : words.saveAndRevalidate}
-          </button>
+          {isRegistered ? null : (
+            <>
+              {hasUnsavedChanges && !isReadOnly ? <span className="detail__dirty">{words.unsavedCorrections}</span> : null}
+              <button type="button" className="button button--ghost" onClick={revertDraft} disabled={!hasUnsavedChanges || isSaving}>
+                {words.revert}
+              </button>
+              <button type="button" className="button button--primary" onClick={saveDraft} disabled={!canSave}>
+                {isSaving ? words.saving : words.saveAndRevalidate}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -151,6 +155,28 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
             ))}
           </ul>
         </MessageBanner>
+      ) : null}
+
+      {document.input_tokens > 0 || document.output_tokens > 0 ? (
+        <section className="panel panel--usage">
+          <header className="panel__header">
+            <h2 className="panel__title">{words.tokensUsed}</h2>
+          </header>
+          <dl className="usage">
+            <div className="usage__item">
+              <dt>{words.modelUsed}</dt>
+              <dd><code>{document.model_used || '—'}</code></dd>
+            </div>
+            <div className="usage__item">
+              <dt>{words.inputTokens}</dt>
+              <dd>{document.input_tokens.toLocaleString()}</dd>
+            </div>
+            <div className="usage__item">
+              <dt>{words.outputTokens}</dt>
+              <dd>{document.output_tokens.toLocaleString()}</dd>
+            </div>
+          </dl>
+        </section>
       ) : null}
 
       <div className="detail__columns">

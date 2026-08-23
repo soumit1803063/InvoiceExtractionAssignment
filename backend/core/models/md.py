@@ -21,12 +21,24 @@ class MdTaxBreakdown(BaseModel):
     fallback_code: Optional[StrictStr] = None
 
 
+class MdModelUsage(BaseModel):
+
+    model_config = ConfigDict(frozen=True)
+
+    model_used: StrictStr = ""
+    input_tokens: StrictInt = 0
+    output_tokens: StrictInt = 0
+
+
 class MdExtractionResult(BaseModel):
 
     model_config = ConfigDict(frozen=True)
     
     fields: DbInvoiceFields = Field(default_factory=DbInvoiceFields)
     error_message: StrictStr = ""
+    model_used: StrictStr = ""
+    input_tokens: StrictInt = 0
+    output_tokens: StrictInt = 0
 
 
 class MdRuleOutcome(BaseModel):

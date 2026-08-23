@@ -1106,3 +1106,31 @@ select {
 .queue-tabs__clear {
   margin-left: auto;
 }
+
+.usage {
+  display: flex;
+  gap: 2rem;
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+  flex-wrap: wrap;
+}
+
+.usage__item dt {
+  font-size: 0.78rem;
+  color: #667085;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.usage__item dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage__note {
+  margin: 0;
+  padding: 0 1rem 1rem;
+  font-size: 0.82rem;
+  color: #667085;
+}
