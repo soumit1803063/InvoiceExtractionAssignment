@@ -98,9 +98,9 @@ class DocumentRepository:
                 session.add(existing)
             session.commit()
 
-    def get(self, key: str) -> Optional[DbStoredDocument]:
+    def get(self, document_id: str) -> Optional[DbStoredDocument]:
         with Session(self._engine) as session:
-            row = session.get(DbDocumentRow, key)
+            row = session.get(DbDocumentRow, document_id)
             return self._to_stored_document(row) if row else None
 
     def list_all(self) -> list[DbStoredDocument]:

@@ -1,3 +1,4 @@
+import threading
 from typing import Optional
 from collections.abc import Sequence
 
@@ -22,6 +23,7 @@ from pydantic import ValidationError
 
 from agno.agent import Agent
 from agno.media import Image
+from agno.run.agent import RunOutput
 
 from .agents import Agents
 from .transcriber import MarkitdownTranscriber
@@ -32,6 +34,8 @@ PDF_SUFFIXES = (".pdf",)
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 SUPPORTED_SUFFIXES = PDF_SUFFIXES + IMAGE_SUFFIXES
 FAILURE_SEPARATOR = "; "
+TRANSCRIPT_SECTION_MARKER = "\n\n<--here is the invoice in markdown format-->\n\n"
+IMAGE_MESSAGE = "invoice image(s) attached"
 
 
 class ExtractionService:
@@ -48,7 +52,7 @@ class ExtractionService:
         self._text_agents = agents.text_chain()
         self._vision_agents = agents.vision_chain()
         self._orientation = orientation
-        self._instructions = settings.extract_prompt
+        self._agent_timeout_seconds = settings.model_timeout_seconds
 
     def extract(self, file_path: PathLike) -> MdExtractionResult:
         try:
@@ -67,14 +71,13 @@ class ExtractionService:
             return self._read_pdf(path)
         except IntakeError:
             return self._read_images(path)
-        
 
     def _read_images(self, path: PathLike) -> tuple[AiInvoice, MdModelUsage]:
         images = [
             Image(content=page.content, mime_type=page.media_type)
             for page in self._to_page_images(path)
         ]
-        return self._structure(self._vision_agents, self._instructions, images)
+        return self._structure(self._vision_agents, IMAGE_MESSAGE, images)
 
     def _read_pdf(self, path: PathLike) -> tuple[AiInvoice, MdModelUsage]:
         page = MdPage(
@@ -83,10 +86,9 @@ class ExtractionService:
             content=Utils.read_bytes(path),
         )
         markdown = self._reader.to_markdown(page)
-        if not markdown.strip():
-            raise IntakeError(ErrorCode.CONTENT_REJECTED, ErrorMessage.EMPTY_DOCUMENT)
-        return self._structure(self._text_agents, self._instructions +"\n\n<--here is the invoice in markdown format-->\n\n" +markdown)
-    
+        prompt = TRANSCRIPT_SECTION_MARKER + markdown
+        return self._structure(self._text_agents, prompt)
+
     def _to_page_images(self, path: PathLike) -> Sequence[MdPage]:
         media_type = Utils.media_type_for_path(path)
         if media_type != Utils.PDF_MEDIA_TYPE:
@@ -110,7 +112,10 @@ class ExtractionService:
         for agent in agents:
             model_id = getattr(getattr(agent, "model", None), "id", "?")
             try:
-                outcome = agent.run(prompt, images=list(images) if images else None)
+                outcome = self._run_bounded(agent, prompt, images)
+            except TimeoutError:
+                failures.append(f"{model_id}: timed out after {self._agent_timeout_seconds}s")
+                continue
             except Exception as error:
                 failures.append(f"{model_id}: {error}")
                 continue
@@ -119,7 +124,11 @@ class ExtractionService:
                 failures.append(f"{model_id}: {ErrorMessage.UNUSABLE_RESPONSE}: no output tokens")
                 continue
             answer = outcome.content
-            invoice = answer if isinstance(answer, AiInvoice) else ExtractionService._salvage(answer)
+            invoice = (
+                answer
+                if isinstance(answer, AiInvoice)
+                else ExtractionService._parse_invoice_from_text(answer)
+            )
             if invoice is not None and not ExtractionService._is_empty(invoice):
                 return invoice, usage
             failures.append(f"{model_id}: {ErrorMessage.UNUSABLE_RESPONSE}: {str(answer)[:160]}")
@@ -128,6 +137,27 @@ class ExtractionService:
     @staticmethod
     def _is_empty(invoice: AiInvoice) -> bool:
         return not invoice.lines and invoice.invoice_number is None and invoice.total_amount is None
+
+    def _run_bounded(
+        self, agent: Agent, prompt: str, images: Optional[Sequence[Image]]
+    ) -> RunOutput:
+        outcome_holder: list[RunOutput] = []
+        error_holder: list[BaseException] = []
+
+        def target() -> None:
+            try:
+                outcome_holder.append(agent.run(prompt, images=list(images) if images else None))
+            except BaseException as error:
+                error_holder.append(error)
+
+        thread = threading.Thread(target=target, daemon=True)
+        thread.start()
+        thread.join(timeout=self._agent_timeout_seconds)
+        if outcome_holder:
+            return outcome_holder[0]
+        if error_holder:
+            raise error_holder[0]
+        raise TimeoutError(f"agent.run did not complete within {self._agent_timeout_seconds}s")
 
     @staticmethod
     def _usage_of(outcome: object, model_id: str) -> MdModelUsage:
@@ -139,7 +169,7 @@ class ExtractionService:
         )
 
     @staticmethod
-    def _salvage(answer: object) -> Optional[AiInvoice]:
+    def _parse_invoice_from_text(answer: object) -> Optional[AiInvoice]:
         parsed = Utils.parse_first_json_object(str(answer))
         if not isinstance(parsed, dict):
             return None
@@ -150,8 +180,6 @@ class ExtractionService:
 
     @staticmethod
     def reason_for(error: IntakeError) -> str:
-        if error.code == ErrorCode.CONTENT_REJECTED:
-            return ErrorMessage.CONTENT_REJECTED.format(detail=error.message)
         return ErrorMessage.UNREADABLE_DOCUMENT.format(detail=error.message)
 
     @staticmethod

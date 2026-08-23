@@ -169,10 +169,6 @@ class HttpAccountingGateway:
         self._api_key = api_key or ""
         self._timeout_seconds = timeout_seconds
 
-    @property
-    def base_url(self) -> str:
-        return self._base_url
-
     def _headers(self) -> dict[str, str]:
         return {API_KEY_HEADER: self._api_key, CONTENT_TYPE_HEADER: JSON_CONTENT_TYPE}
 

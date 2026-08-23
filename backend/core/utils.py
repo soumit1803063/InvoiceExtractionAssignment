@@ -305,7 +305,6 @@ class Utils:
     PDF_MEDIA_TYPE = "application/pdf"
     PNG_FORMAT = "PNG"
     PDF_POINTS_PER_INCH = 72
-    DEFAULT_RENDER_DPI = 600
     PNG_COMPRESS_LEVEL = 1
 
     @staticmethod
@@ -320,9 +319,7 @@ class Utils:
         return buffer.getvalue()
 
     @staticmethod
-    def iter_pdf_page_pngs(
-        path: PathLike, dpi: int = DEFAULT_RENDER_DPI
-    ) -> Sequence[bytes]:
+    def iter_pdf_page_pngs(path: PathLike, dpi: int) -> Sequence[bytes]:
         pages = []
         with PDFIUM_LOCK:
             document = pypdfium2.PdfDocument(str(path))

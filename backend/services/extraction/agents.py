@@ -7,6 +7,8 @@ from agno.skills import LocalSkills, Skills
 from ...core import AiInvoice
 from ...settings import Settings
 
+OPENROUTER_MAX_OUTPUT_TOKENS = 4096
+
 
 class Agents:
 
@@ -22,6 +24,7 @@ class Agents:
                 id=self._settings.openrouter_primary,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -37,6 +40,7 @@ class Agents:
                 id=self._settings.openrouter_deepseek,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -52,6 +56,7 @@ class Agents:
                 id=self._settings.openrouter_nemotron_super,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -67,6 +72,7 @@ class Agents:
                 id=self._settings.openrouter_glm,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -82,6 +88,7 @@ class Agents:
                 id=self._settings.openrouter_nemotron_nano,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -97,6 +104,7 @@ class Agents:
                 id=self._settings.openrouter_dots_note,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._instructions,
             skills=self._skills,
@@ -127,6 +135,7 @@ class Agents:
                 id=self._settings.openrouter_gemma_31b,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._vision_instructions,
             skills=self._skills,
@@ -142,6 +151,7 @@ class Agents:
                 id=self._settings.openrouter_nemotron_omni,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._vision_instructions,
             skills=self._skills,
@@ -157,6 +167,7 @@ class Agents:
                 id=self._settings.openrouter_gemma_26b,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._vision_instructions,
             skills=self._skills,
@@ -172,6 +183,7 @@ class Agents:
                 id=self._settings.openrouter_nemotron_vl,
                 api_key=self._settings.openrouter_api_key,
                 timeout=self._settings.model_timeout_seconds,
+                max_tokens=OPENROUTER_MAX_OUTPUT_TOKENS,
             ),
             instructions=self._vision_instructions,
             skills=self._skills,
