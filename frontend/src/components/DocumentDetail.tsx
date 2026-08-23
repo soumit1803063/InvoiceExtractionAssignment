@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { saveDocumentFields } from '../api/documents';
+import { navigateTo } from '../hooks/useHashRoute';
 import {
   EDITABLE_DATE_FIELD_LABELS,
   EDITABLE_MONEY_FIELD_LABELS,
@@ -80,6 +81,7 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
     try {
       const updatedDocument = await saveDocumentFields(document.document_id, toContractInvoiceFields(draft));
       onDocumentUpdated(updatedDocument);
+      navigateTo('/reading');
       setDraft(toEditableInvoice(updatedDocument.fields));
       setWasSaved(true);
     } catch (cause) {
