@@ -25,13 +25,6 @@ export async function fetchDocuments(signal?: AbortSignal): Promise<InvoiceDocum
   return response?.documents ?? [];
 }
 
-export async function scanDocuments(signal?: AbortSignal): Promise<InvoiceDocument[]> {
-  const response = await requestJson<DocumentListResponse>('/documents/scan', {
-    method: 'POST',
-    ...abortable(signal)
-  });
-  return response?.documents ?? [];
-}
 
 export async function saveDocumentFields(
   documentId: string,
@@ -60,12 +53,6 @@ export async function uploadDocument(file: File, signal?: AbortSignal): Promise<
   });
 }
 
-export async function reprocessDocument(documentId: string, signal?: AbortSignal): Promise<InvoiceDocument> {
-  return requestJson<InvoiceDocument>(`/documents/${encodeURIComponent(documentId)}/reprocess`, {
-    method: 'POST',
-    ...abortable(signal)
-  });
-}
 
 export function buildDocumentPreviewUrl(documentId: string): string {
   return buildApiUrl(`/documents/${encodeURIComponent(documentId)}/preview`);

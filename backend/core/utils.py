@@ -1,4 +1,3 @@
-import hashlib
 import io
 import threading
 import json
@@ -67,20 +66,6 @@ class Utils:
             for key, value in mapping.items()
             if value is not None or key in keys_allowing_none
         }
-
-    SECRET_PLACEHOLDER = "***"
-    MINIMUM_MASKABLE_LENGTH = 8
-
-    @staticmethod
-    def mask_secrets(
-        text: object, secrets: Sequence[str], placeholder: str = SECRET_PLACEHOLDER
-    ) -> str:
-        masked = str(text or "")
-        for secret in secrets:
-            if secret and len(secret) >= Utils.MINIMUM_MASKABLE_LENGTH:
-                masked = masked.replace(secret, placeholder)
-        return masked
-
 
     NEGATIVE_LEADING_MARKS = ("△", "▲", "−", "-")
     LEDGER_EVEN_SUFFIX = "-"
@@ -264,24 +249,6 @@ class Utils:
     TEXT_ENCODING = "utf-8"
 
     @staticmethod
-    def iter_file_chunks(path: PathLike, chunk_size: int = FILE_CHUNK_BYTES) -> Iterator[memoryview]:
-        buffer = bytearray(chunk_size)
-        window = memoryview(buffer)
-        with open(path, "rb") as stream:
-            while True:
-                bytes_filled = stream.readinto(buffer)
-                if not bytes_filled:
-                    return
-                yield window[:bytes_filled]
-
-    @staticmethod
-    def compute_file_sha256(path: PathLike) -> str:
-        digest = hashlib.sha256()
-        for chunk in Utils.iter_file_chunks(path):
-            digest.update(chunk)
-        return digest.hexdigest()
-
-    @staticmethod
     def media_type_for_path(path: PathLike) -> str:
         return Utils.MEDIA_TYPE_BY_SUFFIX.get(
             Path(path).suffix.lower(), Utils.FALLBACK_MEDIA_TYPE
@@ -373,24 +340,6 @@ class Utils:
             finally:
                 document.close()
         return tuple(pages)
-
-    @staticmethod
-    def count_pdf_text_characters(path: PathLike) -> int:
-        with PDFIUM_LOCK:
-            document = pypdfium2.PdfDocument(str(path))
-            try:
-                character_count = 0
-                for page_index in range(len(document)):
-                    page = document[page_index]
-                    text_page = page.get_textpage()
-                    try:
-                        character_count += len(text_page.get_text_bounded().strip())
-                    finally:
-                        text_page.close()
-                        page.close()
-                return character_count
-            finally:
-                document.close()
 
     MAX_EXHAUSTIVE_ITEMS = 12
     MAX_EXHAUSTIVE_GROUPS = 3

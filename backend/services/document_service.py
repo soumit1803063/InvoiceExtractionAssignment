@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 import threading
 import uuid
 from collections.abc import Sequence
@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..core import (
+    PathLike,
     DbDocument,
     ErrorMessage,
     IntakeError,
@@ -24,7 +25,6 @@ from .accounting_service import ReferenceDataProvider, ReqRegistrationFactory
 from .extraction import SUPPORTED_SUFFIXES, ExtractionService
 from .validation import ValidationService
 
-PathLike = Union[Path, str]
 Preview = tuple[Path, str]
 
 
@@ -35,27 +35,8 @@ class DocumentPolicy:
         return registration is not None and bool(registration.accounting_id)
 
     @staticmethod
-    def registration_rejected(registration: Optional[DbRegistration]) -> bool:
-        return registration is not None and registration.http_status >= 400
-
-    @staticmethod
-    def resolve_status(
-        blocking_reasons: Sequence[str], registration: Optional[DbRegistration]
-    ) -> DocumentStatus:
-        if registration is not None:
-            if DocumentPolicy.registration_succeeded(registration):
-                return DocumentStatus.REGISTERED
-            if DocumentPolicy.registration_rejected(registration):
-                return DocumentStatus.REJECTED
-        return DocumentStatus.NEEDS_REVIEW if blocking_reasons else DocumentStatus.READY
-
-    @staticmethod
     def is_registered(document: DbDocument) -> bool:
         return DocumentPolicy.registration_succeeded(document.registration)
-
-    @staticmethod
-    def refusal_reason(document: DbDocument) -> str:
-        return "; ".join(document.blocking_reasons)
 
 
 class InvoiceIntakeService:
@@ -220,7 +201,14 @@ class InvoiceIntakeService:
             if stored is None or DocumentPolicy.is_registered(stored.document):
                 return document
             registration = self._send_registration(stored.document.fields)
-            return self._rebuild_and_save(stored, stored.document.fields, registration)
+            refusal = (
+                []
+                if registration.accounting_id
+                else [ErrorMessage.REGISTRATION_REFUSED.format(detail=registration.error_message)]
+            )
+            return self._rebuild_and_save(
+                stored, stored.document.fields, registration, extra_reasons=refusal
+            )
 
 
     def _send_registration(self, fields: DbInvoiceFields) -> DbRegistration:

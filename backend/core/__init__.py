@@ -17,7 +17,6 @@ from .models import (
     MdPage,
     MdTaxBreakdown,
     MdRuleOutcome,
-    MdVerificationReport,
     PartnerDirectory,
     ReqFieldsUpdate,
     ReqRegistration,
@@ -26,13 +25,12 @@ from .models import (
     ResHealth,
     ResPartner,
     ResReferenceData,
-    ResRegister,
     ResRegistrationReceipt,
     ResTaxRate,
     RuleCode,
     TaxRateTable,
 )
-from .utils import Utils
+from .utils import PathLike, Utils
 
 __all__ = [
     "coerce_tax_code",
@@ -53,7 +51,6 @@ __all__ = [
     "MdPage",
     "MdTaxBreakdown",
     "MdRuleOutcome",
-    "MdVerificationReport",
     "PartnerDirectory",
     "ReqFieldsUpdate",
     "ReqRegistration",
@@ -62,10 +59,10 @@ __all__ = [
     "ResHealth",
     "ResPartner",
     "ResReferenceData",
-    "ResRegister",
     "ResRegistrationReceipt",
     "ResTaxRate",
     "RuleCode",
     "TaxRateTable",
+    "PathLike",
     "Utils",
 ]

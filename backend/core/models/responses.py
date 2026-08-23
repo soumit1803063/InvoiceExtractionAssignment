@@ -2,7 +2,7 @@ from collections.abc import Iterator, Sequence
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from ..utils import Utils
-from .db import DbDocument, DbInvoiceFields, DbRegistration
+from .db import DbDocument, DbInvoiceFields
 from .fields import Rate
 
 
@@ -59,13 +59,6 @@ class ResReferenceData(BaseModel):
     reachable: StrictBool = False
     lookup_failure_reason: StrictStr = ""
 
-
-class ResRegister(BaseModel):
-
-    model_config = ConfigDict(frozen=True)
-
-    document: DbDocument
-    registration: DbRegistration
 
 
 class TaxRateTable:

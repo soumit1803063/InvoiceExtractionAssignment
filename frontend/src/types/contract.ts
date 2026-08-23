@@ -66,10 +66,6 @@ export interface DocumentListResponse {
   documents: InvoiceDocument[];
 }
 
-export interface RegisterResponse {
-  document: InvoiceDocument;
-  registration: Registration;
-}
 
 export interface HealthResponse {
   status: string;
