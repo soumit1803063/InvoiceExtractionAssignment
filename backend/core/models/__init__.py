@@ -23,6 +23,7 @@ from .ai import (
 )
 from .md import (
     MdExtractionResult,
+    MdModelUsage,
     MdPage,
     MdRuleOutcome,
     MdTaxBreakdown,
@@ -58,6 +59,7 @@ __all__ = [
     "ErrorMessage",
     "IntakeError",
     "MdExtractionResult",
+    "MdModelUsage",
     "MdPage",
     "MdRuleOutcome",
     "MdTaxBreakdown",

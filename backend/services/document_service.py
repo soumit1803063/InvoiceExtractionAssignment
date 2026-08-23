@@ -10,6 +10,7 @@ from ..core import (
     DbDocument,
     ErrorMessage,
     IntakeError,
+    MdModelUsage,
     DbInvoiceFields,
     DbRegistration,
     DbStoredDocument,
@@ -161,7 +162,14 @@ class InvoiceIntakeService:
         reasons = [outcome.error_message] if outcome.error_message else []
         previous = stored.document.registration
         kept = previous if DocumentPolicy.registration_succeeded(previous) else None
-        document = self._rebuild_and_save(stored, outcome.fields, kept, extra_reasons=reasons)
+        usage = MdModelUsage(
+            model_used=outcome.model_used,
+            input_tokens=outcome.input_tokens,
+            output_tokens=outcome.output_tokens,
+        )
+        document = self._rebuild_and_save(
+            stored, outcome.fields, kept, extra_reasons=reasons, usage=usage
+        )
         return self._register_when_clean(document)
 
 
@@ -179,9 +187,10 @@ class InvoiceIntakeService:
         fields: DbInvoiceFields,
         registration: Optional[DbRegistration],
         extra_reasons: Sequence[str] = (),
+        usage: Optional[MdModelUsage] = None,
     ) -> DbDocument:
         return self._validation.validate(
-            stored, fields, registration, self._utc_now_iso(), extra_reasons
+            stored, fields, registration, self._utc_now_iso(), extra_reasons, usage
         )
 
     def update_fields(self, document_id: str, fields: DbInvoiceFields) -> Optional[DbDocument]:

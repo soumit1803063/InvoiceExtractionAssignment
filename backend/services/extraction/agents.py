@@ -16,6 +16,36 @@ class Agents:
         self._vision_instructions = settings.extract_prompt
         self._skills = Skills(loaders=[LocalSkills(str(settings.skills_directory))])
 
+    def openrouter_primary(self) -> Agent:
+        return Agent(
+            model=OpenRouter(
+                id=self._settings.openrouter_primary,
+                api_key=self._settings.openrouter_api_key,
+                timeout=self._settings.model_timeout_seconds,
+            ),
+            instructions=self._instructions,
+            skills=self._skills,
+            output_schema=AiInvoice,
+            pre_hooks=[PromptInjectionGuardrail()],
+            markdown=False,
+            telemetry=False,
+        )
+
+    def openrouter_deepseek(self) -> Agent:
+        return Agent(
+            model=OpenRouter(
+                id=self._settings.openrouter_deepseek,
+                api_key=self._settings.openrouter_api_key,
+                timeout=self._settings.model_timeout_seconds,
+            ),
+            instructions=self._instructions,
+            skills=self._skills,
+            output_schema=AiInvoice,
+            pre_hooks=[PromptInjectionGuardrail()],
+            markdown=False,
+            telemetry=False,
+        )
+
     def openrouter_nemotron_super(self) -> Agent:
         return Agent(
             model=OpenRouter(
@@ -153,22 +183,25 @@ class Agents:
 
     def vision_chain(self) -> tuple[Agent, ...]:
         agents = []
+        if self._settings.gemini_api_key:
+            agents.append(self.gemini())
         if self._settings.openrouter_api_key:
+            agents.append(self.openrouter_primary())
             agents.append(self.vision_gemma_31b())
             agents.append(self.vision_nemotron_omni())
             agents.append(self.vision_gemma_26b())
             agents.append(self.vision_nemotron_vl())
-        if self._settings.gemini_api_key:
-            agents.append(self.gemini())
         return tuple(agents)
 
     def text_chain(self) -> tuple[Agent, ...]:
         agents = []
+        if self._settings.gemini_api_key:
+            agents.append(self.gemini())
         if self._settings.openrouter_api_key:
+            agents.append(self.openrouter_deepseek())
+            agents.append(self.openrouter_primary())
             agents.append(self.openrouter_nemotron_super())
             agents.append(self.openrouter_glm())
             agents.append(self.openrouter_nemotron_nano())
             agents.append(self.openrouter_dots_note())
-        if self._settings.gemini_api_key:
-            agents.append(self.gemini())
         return tuple(agents)

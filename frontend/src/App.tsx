@@ -66,9 +66,6 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
       <header className="app__header">
         <div>
           <h1 className="app__title">{words.invoiceReview}</h1>
-          <p className="app__subtitle">
-            {words.checkEveryInvoiceBeforeLogged}
-          </p>
           <ConnectionIndicator />
         </div>
         <div className="app__controls">
