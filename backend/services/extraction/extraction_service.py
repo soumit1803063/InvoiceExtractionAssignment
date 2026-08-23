@@ -12,11 +12,16 @@ from ...core import (
     ErrorMessage,
     IntakeError,
     MdExtractionResult,
-    MdPageImage,
+    MdPage,
     MdTaxBreakdown,
     Utils,
     coerce_tax_code,
 )
+from pydantic import ValidationError
+
+from agno.agent import Agent
+from agno.media import Image
+
 from .agents import Agents
 from .transcriber import Transcribers
 from .orientation import OrientationCorrector
@@ -41,75 +46,87 @@ class ExtractionService:
         orientation: OrientationCorrector,
     ) -> None:
         self._dpi = settings.render_dpi
-        self._transcribers = transcribers.model_chain()
-        self._plain_transcriber = transcribers.plain()
-        self._agents = agents.fallback_chain()
+        self._reader = transcribers.plain()
+        self._text_agents = agents.text_chain()
+        self._vision_agents = agents.vision_chain()
         self._orientation = orientation
+        self._instructions = settings.extract_prompt
 
     def extract(self, file_path: PathLike) -> MdExtractionResult:
         try:
-            markdown = self._convert_file_to_markdown(file_path)
-            extraction_result = self._extract_from_markdown(markdown)
-            return MdExtractionResult(fields=ExtractionService.to_invoice_fields(extraction_result))
+            return MdExtractionResult(fields=ExtractionService.to_invoice_fields(self._read(file_path)))
         except IntakeError as error:
             return MdExtractionResult(error_message=self.reason_for(error))
 
-    def _convert_file_to_markdown(self, path: PathLike) -> str:
+    def _read(self, path: PathLike) -> AiInvoice:
         try:
-            return self._read_without_a_model(path)
+            return self._read_pdf(path)
         except IntakeError:
-            pass
-        pages = []
-        for page_image in self._to_page_images(path):
-            heading = PAGE_HEADING.format(page_number=page_image.page_number)
-            pages.append(heading + self._transcribe_page(page_image))
-        return PAGE_SEPARATOR.join(pages)
+            return self._read_images(path)
+        
 
-    def _read_without_a_model(self, path: PathLike) -> str:
-        page = MdPageImage(
+    def _read_images(self, path: PathLike) -> AiInvoice:
+        images = [
+            Image(content=page.content, mime_type=page.media_type)
+            for page in self._to_page_images(path)
+        ]
+        return self._structure(self._vision_agents, self._instructions, images)
+
+    def _read_pdf(self, path: PathLike) -> AiInvoice:
+        page = MdPage(
             page_number=1,
             media_type=Utils.media_type_for_path(path),
             content=Utils.read_bytes(path),
         )
-        return self._plain_transcriber.to_markdown(page)
-
-    def _transcribe_page(self, page: MdPageImage) -> str:
-        failures = []
-        for transcriber in self._transcribers:
-            try:
-                return transcriber.to_markdown(page)
-            except IntakeError as error:
-                failures.append(f"{transcriber.model_id or 'no model'}: {error.message}")
-        raise IntakeError(ErrorCode.TRANSCRIPTION_FAILED, FAILURE_SEPARATOR.join(failures))
-
-    def _to_page_images(self, path: PathLike) -> Sequence[MdPageImage]:
+        markdown = self._reader.to_markdown(page)
+        if not markdown.strip():
+            raise IntakeError(ErrorCode.CONTENT_REJECTED, ErrorMessage.EMPTY_DOCUMENT)
+        return self._structure(self._text_agents, self._instructions +"\n\n<--here is the invoice in markdown format-->\n\n" +markdown)
+    
+    def _to_page_images(self, path: PathLike) -> Sequence[MdPage]:
         media_type = Utils.media_type_for_path(path)
         if media_type != Utils.PDF_MEDIA_TYPE:
-            page = MdPageImage(
+            page = MdPage(
                 page_number=1, media_type=media_type, content=Utils.read_bytes(path)
             )
             return (self._orientation.upright(page),)
         return tuple(
             self._orientation.upright(
-                MdPageImage(page_number=number, media_type=Utils.PNG_MEDIA_TYPE, content=png)
+                MdPage(page_number=number, media_type=Utils.PNG_MEDIA_TYPE, content=png)
             )
             for number, png in enumerate(Utils.iter_pdf_page_pngs(path, self._dpi), start=1)
         )
 
-    def _extract_from_markdown(self, markdown: str) -> AiInvoice:
-        if not self._agents:
+    def _structure(
+        self, agents: Sequence[Agent], prompt: str, images: Optional[Sequence[Image]] = None
+    ) -> AiInvoice:
+        if not agents:
             raise IntakeError(ErrorCode.STRUCTURING_FAILED, ErrorMessage.NO_STRUCTURING_MODEL)
         failures = []
-        for agent in self._agents:
+        for agent in agents:
+            model_id = getattr(getattr(agent, "model", None), "id", "?")
             try:
-                answer = agent.run(markdown).content
+                answer = agent.run(prompt, images=list(images) if images else None).content
             except Exception as error:
-                failures.append(str(error))
+                failures.append(f"{model_id}: {error}")
                 continue
             if isinstance(answer, AiInvoice):
                 return answer
-            failures.append(ErrorMessage.UNUSABLE_RESPONSE)
+            salvaged = ExtractionService._salvage(answer)
+            if salvaged is not None:
+                return salvaged
+            failures.append(f"{model_id}: {ErrorMessage.UNUSABLE_RESPONSE}: {str(answer)[:160]}")
         raise IntakeError(ErrorCode.STRUCTURING_FAILED, FAILURE_SEPARATOR.join(failures))
+
+    @staticmethod
+    def _salvage(answer: object) -> Optional[AiInvoice]:
+        parsed = Utils.parse_first_json_object(str(answer))
+        if not isinstance(parsed, dict):
+            return None
+        try:
+            return AiInvoice.model_validate(parsed)
+        except ValidationError:
+            return None
 
     @staticmethod
     def reason_for(error: IntakeError) -> str:

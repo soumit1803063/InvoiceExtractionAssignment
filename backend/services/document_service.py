@@ -7,7 +7,6 @@ from pathlib import Path
 
 from ..core import (
     DbDocument,
-    ErrorCode,
     ErrorMessage,
     IntakeError,
     DbInvoiceFields,
@@ -216,34 +215,19 @@ class InvoiceIntakeService:
     def _register_when_clean(self, document: DbDocument) -> DbDocument:
         if document.blocking_reasons or DocumentPolicy.is_registered(document):
             return document
-        outcome = self.register(document.document_id)
-        return outcome[0] if outcome else document
+        with self._registration_lock:
+            stored = self._repository.get(document.document_id)
+            if stored is None or DocumentPolicy.is_registered(stored.document):
+                return document
+            registration = self._send_registration(stored.document.fields)
+            return self._rebuild_and_save(stored, stored.document.fields, registration)
 
-    def register(self, document_id: str) -> Optional[tuple[DbDocument, DbRegistration]]:
-        stored = self._repository.get(document_id)
-        if stored is None:
-            return None
-        previous = stored.document
-        if DocumentPolicy.is_registered(previous):
-            return previous, previous.registration
-        if previous.blocking_reasons:
-            registration = DbRegistration(
-                attempted_at=self._utc_now_iso(),
-                http_status=0,
-                error_code=ErrorCode.VERIFICATION_BLOCKED,
-                error_message=DocumentPolicy.refusal_reason(previous),
-            )
-        else:
-            registration = self._send_registration(previous.fields)
-        document = self._rebuild_and_save(stored, previous.fields, registration)
-        return document, registration
 
     def _send_registration(self, fields: DbInvoiceFields) -> DbRegistration:
         attempted_at = self._utc_now_iso()
         request = ReqRegistrationFactory.of(fields)
         try:
-            with self._registration_lock:
-                receipt = self._reference_data.gateway.register_invoice(request)
+            receipt = self._reference_data.gateway.register_invoice(request)
         except IntakeError as error:
             return DbRegistration(
                 attempted_at=attempted_at,

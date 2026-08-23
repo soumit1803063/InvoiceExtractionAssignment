@@ -54,6 +54,7 @@ class DocumentRepository:
             verification_json=Utils.dump_json(document.verification.model_dump()),
             status=str(document.status),
             blocking_reasons_json=Utils.dump_json(document.blocking_reasons),
+            extra_failures_json=Utils.dump_json(document.extra_failures),
             registration_json=(
                 Utils.dump_json(registration.model_dump()) if registration else None
             ),
@@ -69,6 +70,7 @@ class DocumentRepository:
             verification=json.loads(row.verification_json),
             status=row.status,
             blocking_reasons=json.loads(row.blocking_reasons_json),
+            extra_failures=json.loads(row.extra_failures_json),
             registration=json.loads(row.registration_json) if row.registration_json else None,
         )
         return DbStoredDocument(

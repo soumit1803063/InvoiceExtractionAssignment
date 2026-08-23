@@ -9,7 +9,7 @@ from pathlib import Path
 import requests
 from PIL import Image, ImageOps
 
-from ...core import MdPageImage, Utils
+from ...core import MdPage, Utils
 from ...settings import Settings
 
 WINDOWS_TESSERACT_PATHS = (
@@ -63,13 +63,13 @@ class OrientationCorrector:
     def is_available(self) -> bool:
         return bool(self._command)
 
-    def upright(self, page: MdPageImage) -> MdPageImage:
+    def upright(self, page: MdPage) -> MdPage:
         try:
             return self._corrected(page)
         except Exception:
             return page
 
-    def _corrected(self, page: MdPageImage) -> MdPageImage:
+    def _corrected(self, page: MdPage) -> MdPage:
         with Image.open(io.BytesIO(page.content)) as opened:
             opened.load()
             exif_orientation = opened.getexif().get(EXIF_ORIENTATION_TAG, 1)

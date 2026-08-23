@@ -42,17 +42,19 @@ class ValidationService:
             fields.partner_code, fields.invoice_number, previous.document_id
         )
         outcomes = self._run_rules(fields, tax_table, partner is not None, duplicate_of)
-        blocking_reasons = list(extra_reasons) + [
+        blocking_reasons = [
             outcome.reason for outcome in outcomes if not outcome.passed and outcome.reason
         ]
+        extra_failures = list(extra_reasons)
         document = DbDocument(
             document_id=previous.document_id,
             created_at=previous.created_at,
             source_name=previous.source_name,
             fields=fields,
             verification=self._summarise(outcomes, duplicate_of),
-            status=self._resolve_status(blocking_reasons, registration),
+            status=self._resolve_status(blocking_reasons + extra_failures, registration),
             blocking_reasons=blocking_reasons,
+            extra_failures=extra_failures,
             registration=registration,
         )
         self._repository.save(

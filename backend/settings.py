@@ -68,6 +68,10 @@ class Settings(BaseSettings):
         return (self.prompts_directory / "transcribe.md").read_text(encoding="utf-8")
 
     @property
+    def extract_prompt(self) -> str:
+        return (self.prompts_directory / "extract.md").read_text(encoding="utf-8")
+
+    @property
     def structure_prompt(self) -> str:
         return (self.prompts_directory / "structure.md").read_text(encoding="utf-8")
 
