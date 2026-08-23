@@ -59,10 +59,6 @@ class OrientationCorrector:
     def __init__(self, settings: Settings) -> None:
         self._command = self._prepare(settings) if settings.orientation_enabled else ""
 
-    @property
-    def is_available(self) -> bool:
-        return bool(self._command)
-
     def upright(self, page: MdPage) -> MdPage:
         try:
             return self._corrected(page)
@@ -156,7 +152,7 @@ class OrientationCorrector:
             os.environ["PATH"] = os.pathsep.join([directory, *entries])
 
     @staticmethod
-    def _installed_osd_directory(command: str) -> bool:
+    def _osd_data_is_installed(command: str) -> bool:
         binary = Path(command).parent
         configured = os.environ.get(TESSDATA_PREFIX_VARIABLE, "")
         candidates = [
@@ -171,7 +167,7 @@ class OrientationCorrector:
 
     @staticmethod
     def _ensure_osd_data(settings: Settings, command: str) -> bool:
-        if OrientationCorrector._installed_osd_directory(command):
+        if OrientationCorrector._osd_data_is_installed(command):
             return True
         target = Path(settings.project_root) / TOOLS_RELATIVE_PATH / TESSDATA_DIRECTORY
         destination = target / OSD_DATA_FILE

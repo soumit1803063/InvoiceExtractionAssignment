@@ -13,7 +13,6 @@ class IntakeError(Exception):
 class ErrorCode(StrEnum):
     ACCOUNTING_API_ERROR = "ACCOUNTING_API_ERROR"
     ACCOUNTING_API_UNREACHABLE = "ACCOUNTING_API_UNREACHABLE"
-    CONTENT_REJECTED = "CONTENT_REJECTED"
     MALFORMED_RESPONSE = "MALFORMED_RESPONSE"
     STRUCTURING_FAILED = "STRUCTURING_FAILED"
     TRANSCRIPTION_FAILED = "TRANSCRIPTION_FAILED"
@@ -34,14 +33,11 @@ class ErrorMessage(StrEnum):
     TAX_CODE_NOT_ACCEPTED = "Tax code not accepted by the accounting system on: {names}"
     TOTAL_CONSISTENT = "Subtotal plus tax does not equal the total amount"
 
-    CONTENT_REJECTED = "content_rejected: {detail}"
     UNREADABLE_DOCUMENT = "Could not read the document: {detail}"
     EMPTY_TRANSCRIPTION = "the transcriber returned no text for this page"
     NO_STRUCTURING_MODEL = "no structuring model is configured"
-    NO_TRANSCRIBER = "no transcription provider is configured"
     REGISTRATION_REFUSED = "The accounting system refused this invoice: {detail}"
     PROCESSING_FAILED = "Reading the document failed: {detail}"
-    PROCESSING_INTERRUPTED = "Reading was interrupted before it finished, so it was started again"
     UNUSABLE_RESPONSE = "the agent did not return an invoice"
 
     ACCOUNTING_REJECTED = "The accounting API rejected the request"

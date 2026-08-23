@@ -197,6 +197,36 @@ class InvoiceIntakeService:
         stored = self._repository.get(document_id)
         if stored is None:
             return None
+        processing_document = stored.document.model_copy(
+            update={"fields": fields, "status": DocumentStatus.PROCESSING}
+        )
+        self._repository.save(
+            DbStoredDocument(
+                document=processing_document,
+                source_path=stored.source_path,
+                created_at=stored.created_at,
+                updated_at=self._utc_now_iso(),
+            )
+        )
+        self._start_revalidation(document_id, fields)
+        return processing_document
+
+    def _start_revalidation(self, document_id: str, fields: DbInvoiceFields) -> None:
+        worker = threading.Thread(
+            target=self._run_revalidation, args=(document_id, fields), daemon=True
+        )
+        worker.start()
+
+    def _run_revalidation(self, document_id: str, fields: DbInvoiceFields) -> None:
+        try:
+            self._revalidate(document_id, fields)
+        except Exception as error:
+            self._record_processing_failure(document_id, error)
+
+    def _revalidate(self, document_id: str, fields: DbInvoiceFields) -> Optional[DbDocument]:
+        stored = self._repository.get(document_id)
+        if stored is None:
+            return None
         previous = stored.document.registration
         kept = previous if DocumentPolicy.registration_succeeded(previous) else None
         document = self._rebuild_and_save(stored, fields, kept)

@@ -67,10 +67,6 @@ class Settings(BaseSettings):
     tesseract_path: StrictStr = Field(default="", alias="TESSERACT_PATH")
 
     @property
-    def transcribe_prompt(self) -> str:
-        return (self.prompts_directory / "transcribe.md").read_text(encoding="utf-8")
-
-    @property
     def extract_prompt(self) -> str:
         return (self.prompts_directory / "extract.md").read_text(encoding="utf-8")
 
