@@ -28,9 +28,6 @@ class Settings(BaseSettings):
     accounting_timeout_seconds: int = Field(default=10, alias="ACCOUNTING_API_TIMEOUT_SECONDS")
 
     openrouter_api_key: StrictStr = Field(default="", alias="OPENROUTER_API_KEY")
-    openrouter_base_url: StrictStr = Field(
-        default="https://openrouter.ai/api/v1", alias="OPENROUTER_BASE_URL"
-    )
     gemini_api_key: StrictStr = Field(default="", alias="GEMINI_API_KEY")
     gemini_model: StrictStr = Field(default="gemini-3.7-flash", alias="GEMINI_MODEL")
 

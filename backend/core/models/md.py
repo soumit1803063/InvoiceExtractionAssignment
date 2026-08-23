@@ -40,9 +40,3 @@ class MdRuleOutcome(BaseModel):
     details: tuple[StrictStr, ...] = Field(default_factory=tuple)
 
 
-class MdVerificationReport(BaseModel):
-
-    model_config = ConfigDict(frozen=True)
-
-    outcomes: tuple[MdRuleOutcome, ...] = Field(default_factory=tuple)
-    duplicate_of: Optional[StrictStr] = None

@@ -5,7 +5,12 @@ from .controllers.controller import build_router
 from .repositories import DocumentRepository
 from .services.accounting_service import HttpAccountingGateway, ReferenceDataProvider
 from .services.document_service import InvoiceIntakeService
-from .services.extraction import Agents, ExtractionService, OrientationCorrector, Transcribers
+from .services.extraction import (
+    Agents,
+    ExtractionService,
+    MarkitdownTranscriber,
+    OrientationCorrector,
+)
 from .services.validation import ValidationService
 from .settings import Settings
 
@@ -20,7 +25,7 @@ def create_app(settings: Settings) -> FastAPI:
     repository = DocumentRepository(settings.database_path)
     extraction = ExtractionService(
         settings,
-        Transcribers(settings),
+        MarkitdownTranscriber(),
         Agents(settings),
         OrientationCorrector(settings),
     )

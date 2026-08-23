@@ -1,9 +1,9 @@
-from typing import Optional, Union
+from typing import Optional
 from collections.abc import Sequence
-from pathlib import Path
 
 from ...settings import Settings
 from ...core import (
+    PathLike,
     AiInvoice,
     AiLineItem,
     DbInvoiceFields,
@@ -23,16 +23,13 @@ from agno.agent import Agent
 from agno.media import Image
 
 from .agents import Agents
-from .transcriber import Transcribers
+from .transcriber import MarkitdownTranscriber
 from .orientation import OrientationCorrector
 
-PathLike = Union[Path, str]
 
 PDF_SUFFIXES = (".pdf",)
 IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 SUPPORTED_SUFFIXES = PDF_SUFFIXES + IMAGE_SUFFIXES
-PAGE_SEPARATOR = "\n\n"
-PAGE_HEADING = "<!-- page {page_number} -->\n"
 FAILURE_SEPARATOR = "; "
 
 
@@ -41,12 +38,12 @@ class ExtractionService:
     def __init__(
         self,
         settings: Settings,
-        transcribers: Transcribers,
+        reader: MarkitdownTranscriber,
         agents: Agents,
         orientation: OrientationCorrector,
     ) -> None:
         self._dpi = settings.render_dpi
-        self._reader = transcribers.plain()
+        self._reader = reader
         self._text_agents = agents.text_chain()
         self._vision_agents = agents.vision_chain()
         self._orientation = orientation

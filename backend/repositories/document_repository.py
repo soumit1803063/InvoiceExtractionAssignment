@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 import json
 from pathlib import Path
 
@@ -6,13 +6,13 @@ from sqlalchemy import inspect
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from ..core import (
+    PathLike,
     DbDocument,
     DbDocumentRow,
     DbStoredDocument,
     Utils,
 )
 
-PathLike = Union[Path, str]
 CONNECTION_TIMEOUT_SECONDS = 30.0
 
 

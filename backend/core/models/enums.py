@@ -39,6 +39,7 @@ class ErrorMessage(StrEnum):
     EMPTY_TRANSCRIPTION = "the transcriber returned no text for this page"
     NO_STRUCTURING_MODEL = "no structuring model is configured"
     NO_TRANSCRIBER = "no transcription provider is configured"
+    REGISTRATION_REFUSED = "The accounting system refused this invoice: {detail}"
     PROCESSING_FAILED = "Reading the document failed: {detail}"
     PROCESSING_INTERRUPTED = "Reading was interrupted before it finished, so it was started again"
     UNUSABLE_RESPONSE = "the agent did not return an invoice"

@@ -42,7 +42,4 @@ export function humanizeIdentifier(value: string): string {
     .replace(/^./, (character) => character.toUpperCase());
 }
 
-export function isBlank(value: string | null | undefined): boolean {
-  return value === null || value === undefined || value.trim() === '';
-}
 

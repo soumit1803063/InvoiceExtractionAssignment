@@ -138,20 +138,6 @@ select {
   background: var(--surface-sunken);
 }
 
-.app__queue-title {
-  font-size: 1rem;
-  display: flex;
-  gap: 0.5rem;
-  align-items: baseline;
-}
-
-.app__queue-title-latin {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .app__queue-counts {
   color: var(--text-muted);
   font-size: 0.8rem;
@@ -186,11 +172,6 @@ select {
   font-weight: 600;
   border: 1px solid transparent;
   white-space: nowrap;
-}
-
-.badge__latin {
-  font-weight: 500;
-  opacity: 0.85;
 }
 
 .badge--warning {
@@ -259,11 +240,6 @@ select {
   background: transparent;
 }
 
-.button--wide {
-  width: 100%;
-  padding: 0.6rem 1rem;
-  font-size: 1rem;
-}
 
 .button--icon {
   padding: 0.2rem 0.45rem;
@@ -366,13 +342,6 @@ select {
   align-items: baseline;
 }
 
-.panel__title-latin {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .panel__summary {
   color: var(--text-muted);
   font-size: 0.8rem;
@@ -405,14 +374,6 @@ select {
   gap: 0.4rem;
   align-items: baseline;
   font-size: 0.78rem;
-}
-
-.field__label-japanese {
-  font-weight: 600;
-}
-
-.field__label-latin {
-  color: var(--text-muted);
 }
 
 .field__input {
@@ -655,10 +616,6 @@ select {
   font-weight: 600;
 }
 
-.verification__label-japanese {
-  font-weight: 700;
-}
-
 .verification__outcome {
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -734,59 +691,6 @@ select {
   font-size: 0.8rem;
 }
 
-.panel--register {
-  gap: 0.7rem;
-}
-
-.irreversible-notice {
-  border: 1px solid #e8cd93;
-  border-left: 4px solid var(--warning);
-  background: var(--warning-surface);
-  border-radius: 8px;
-  padding: 0.65rem 0.85rem;
-  font-size: 0.85rem;
-}
-
-.irreversible-notice__title {
-  font-weight: 700;
-  color: var(--warning);
-}
-
-.register-blocked {
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
-  background: var(--surface-sunken);
-}
-
-.register-blocked__title {
-  font-weight: 700;
-  margin-bottom: 0.2rem;
-}
-
-.confirm-box {
-  border: 2px solid var(--danger);
-  border-radius: 8px;
-  padding: 0.75rem 0.9rem;
-  background: var(--danger-surface);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  font-size: 0.87rem;
-}
-
-.confirm-box__title {
-  font-weight: 700;
-  color: var(--danger);
-}
-
-.confirm-box__actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 .banner {
   display: flex;
   gap: 1rem;
@@ -806,28 +710,8 @@ select {
   font-size: 0.85rem;
 }
 
-.banner__meta {
-  color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
 .banner__list {
   margin: 0;
-}
-
-.excluded-notes {
-  margin: 0.5rem 0 0;
-  padding: 0.55rem 0.75rem;
-  background: var(--surface);
-  border: 1px solid #eec2be;
-  border-left: 5px solid var(--danger);
-  border-radius: 6px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--danger);
-  line-height: 1.7;
 }
 
 .banner--info {
@@ -892,48 +776,6 @@ select {
   }
 }
 
-.upload-control {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-  max-width: 30rem;
-}
-
-.upload-control__input {
-  display: none;
-}
-
-.upload-control__buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.upload-control__hint,
-.upload-control__status {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-align: right;
-  margin: 0;
-}
-
-.upload-control__status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-align: left;
-}
-
-.upload-control__spinner {
-  width: 0.85rem;
-  height: 0.85rem;
-  flex: none;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: upload-spin 0.9s linear infinite;
-}
-
 @keyframes upload-spin {
   to {
     transform: rotate(360deg);
@@ -980,9 +822,6 @@ select {
   outline-offset: -2px;
 }
 
-.queue__row--selected {
-  background: var(--info-surface);
-}
 
 .queue__cell {
   padding: 0.6rem 1rem;
@@ -1125,17 +964,6 @@ select {
   color: #fff;
 }
 
-.app__nav-japanese {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.app__nav-latin {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .dropzone {
   background: var(--surface);
   border: 2px dashed var(--border-strong);
@@ -1150,14 +978,6 @@ select {
 
 .dropzone__title {
   font-size: 1.3rem;
-}
-
-.dropzone__subtitle {
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.75rem;
-  margin: 0;
 }
 
 .dropzone__input {
