@@ -176,7 +176,7 @@ it goes back to the queue.
 
 ### 2.5 Verification
 
-![The seven checks](public/screenshots/10-duplicate-blocked.png)
+![The seven checks](public/screenshots/11-duplicate-blocked.png)
 
 Seven checks run on every extraction and on every correction. All seven must pass before anything is
 sent onward. Each one states its result, what it protects against, and the numbers it used.
@@ -199,7 +199,7 @@ When all seven pass, the invoice is registered automatically. No button, no conf
 
 ### 2.6 Blocked
 
-![Blocked tab](public/screenshots/12-blocked-list.png)
+![Blocked tab](public/screenshots/13-blocked-list.png)
 
 A document that fails any check goes to **Blocked** and stops there. The tab shows the score at a
 glance: `6/7` for a document with one failure, `1/7` for one the model barely read.
@@ -223,7 +223,7 @@ copies that were verified at the same moment cannot both be registered.
 
 ### 2.7 Review and revalidate
 
-![Review screen](public/screenshots/11-edit-and-revalidate.png)
+![Review screen](public/screenshots/12-edit-and-revalidate.png)
 
 The source page sits on the left and the extracted data on the right, so the reviewer reads the paper
 and fixes the data without switching windows.
@@ -282,9 +282,14 @@ numbers them in the order it receives them.
 There is one confirmation step. It cannot be undone.
 
 The app no longer knows the unregistered invoice, so the file can be uploaded again and read like any
-other new file.
+other new file. It gets a new process id.
 
 ![Reading an unregistered document again](public/screenshots/09-read-again.png)
+
+Nothing about the invoice blocks it the second time. The document it used to duplicate is gone, so if
+all seven checks pass it registers again and is given a fresh accounting id.
+
+![The re-read document registered again](public/screenshots/10-re-registered.png)
 
 ---
 
