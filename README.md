@@ -252,23 +252,27 @@ two things running at once.
 
 ![Unregister](public/screenshots/07-unregister.png)
 
-Registration is close to one-way, and the app says so before doing anything. The accounting system
-has no update call and no way to delete a single record — the only removal it offers is
-`DELETE /invoices`, which clears everything. So **Unregister** does the only thing that endpoint
-allows: it reads back every invoice the accounting system holds, deletes them all, and registers the
-others again. The others keep their data but are given new accounting ids.
+The accounting system has no update call. It cannot delete one record. The only removal it offers is
+`DELETE /invoices`, which clears everything.
 
-That is destructive enough to be worth refusing when it is not safe. Before deleting anything, every
-record read back from the accounting system is matched to a document this app still holds. If even
-one record cannot be matched — something registered by another tool, or from a previous run of this
-app against the same live system — **nothing is deleted** and the reason names the invoice that could
-not be rebuilt.
+So **Unregister** rebuilds the ledger. Step by step:
+
+1. Read every invoice the accounting system holds — `GET /invoices`.
+2. Match each one to a document this app still holds.
+3. If any record cannot be matched, stop. Nothing is deleted. The reason names that invoice.
+4. Delete all records — `DELETE /invoices`.
+5. Register every kept document again — `POST /invoices`.
+6. Delete the chosen document and its uploaded file from this app.
+
+Step 3 is the guard. A record registered by another tool, or by an earlier run against the same live
+system, cannot be rebuilt. So nothing is touched.
 
 ![After unregistering](public/screenshots/08-after-unregister.png)
 
-When it succeeds the document and its uploaded file are removed from this app, and the remaining
-registered documents are listed again with their new accounting ids. There is one confirmation step
-and it cannot be undone.
+The kept documents keep their data. They are given new accounting ids, because the accounting system
+numbers them in the order it receives them.
+
+There is one confirmation step. It cannot be undone.
 
 ---
 
