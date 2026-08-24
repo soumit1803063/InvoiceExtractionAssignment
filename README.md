@@ -58,7 +58,7 @@ reason stated on screen.
 The header shows, at all times, whether the accounting system is answering. If it is not, nothing is
 registered — invoices simply queue up and wait.
 
-![Accounting system reachable](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/01-accounting-reachable.png)
+![Accounting system reachable](public/screenshots/01-accounting-reachable.png)
 
 The app never imports or launches `accounting_api.py`. It is treated as a separate system on another
 server and reached over HTTP only: `/health`, `/partners`, `/tax-codes`, `POST /invoices`.
@@ -69,7 +69,7 @@ server and reached over HTTP only: `/health`, `/partners`, `/tax-codes`, `POST /
 
 Drop files on the Upload screen. It accepts `.pdf`, `.jpg`, `.jpeg` and `.png`, several at a time.
 
-![Upload screen](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/02-upload.png)
+![Upload screen](public/screenshots/02-upload.png)
 
 Each file is copied into the invoices folder, given a process id, and read in the background. You do
 not wait on the screen — the upload returns immediately.
@@ -81,7 +81,7 @@ not wait on the screen — the upload returns immediately.
 Reading happens on a background worker, so the queue stays usable while models are working. Every
 document carries its own process id, which is how you follow it end to end.
 
-![Reading queue](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/03-reading.png)
+![Reading queue](public/screenshots/03-reading.png)
 
 How a file is read depends on what it actually is:
 
@@ -127,7 +127,7 @@ total against the total printed on the page ties the extraction back to the docu
 The supplier master and the accepted tax codes are read live from the accounting system, and shown
 next to the checks so a reviewer can see what was matched against:
 
-![Reference data from the accounting system](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/06-accounting-reference.png)
+![Reference data from the accounting system](public/screenshots/06-accounting-reference.png)
 
 ---
 
@@ -135,17 +135,17 @@ next to the checks so a reviewer can see what was matched against:
 
 A document that fails any check goes to **Blocked** and stops there. It is never sent onward.
 
-![Blocked queue](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/04-blocked.png)
+![Blocked queue](public/screenshots/04-blocked.png)
 
 The queue tells you the score at a glance (`6/7`), and the detail screen tells you exactly which check
 failed, in plain language, with the numbers it used:
 
-![A failed check](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/07-check-failed.png)
+![A failed check](public/screenshots/07-check-failed.png)
 
 Duplicates are caught before registration rather than after, by partner code plus invoice number, and
 the screen names the earlier document:
 
-![Duplicate blocked](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/08-duplicate-blocked.png)
+![Duplicate blocked](public/screenshots/08-duplicate-blocked.png)
 
 ---
 
@@ -154,7 +154,7 @@ the screen names the earlier document:
 Every extracted field is editable, side by side with the source page. The reviewer reads the paper on
 the left and fixes the data on the right — no switching windows.
 
-![Review and edit](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/05-review-and-edit.png)
+![Review and edit](public/screenshots/05-review-and-edit.png)
 
 What is on this screen:
 
@@ -178,12 +178,12 @@ kept throughout, so history is not lost.
 When all seven checks pass, the invoice is registered automatically — no button, no confirmation
 step. The reviewer's job is only the exceptions.
 
-![All checks passed](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/10-all-checks-passed.png)
+![All checks passed](public/screenshots/10-all-checks-passed.png)
 
 Registered invoices move to **Registered** and stay there permanently, showing the accounting id the
 accounting system gave back and the time it was accepted.
 
-![Registered list](https://raw.githubusercontent.com/soumit1803063/InvoiceExtractionAssignment/main/public/screenshots/09-registered-list.png)
+![Registered list](public/screenshots/09-registered-list.png)
 
 Registration is one-way. The accounting system has no update and no single-record delete, so once an
 invoice is registered this app will not edit it, will not re-read it, and will not send it again. A
