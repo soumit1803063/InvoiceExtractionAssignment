@@ -12,6 +12,7 @@ from ..core import (
     PartnerDirectory,
     ReqRegistration,
     ReqRegistrationLine,
+    ResAccountingInvoice,
     ResPartner,
     ResRegistrationReceipt,
     ResTaxRate,
@@ -232,14 +233,15 @@ class HttpAccountingGateway:
                 rates.append(ResTaxRate(code=code, rate=rate))
         return TaxRateTable(rates)
 
+    def fetch_registered_invoices(self) -> tuple[ResAccountingInvoice, ...]:
+        _, data = self._send("GET", INVOICES_PATH)
+        entries = data.get(INVOICES_KEY) or []
+        return tuple(ResAccountingInvoice(**entry) for entry in entries)
+
     def delete_registered_invoices(self) -> int:
         _, data = self._send("DELETE", INVOICES_PATH)
         removed = data.get(REMOVED_KEY)
         return removed if isinstance(removed, int) and not isinstance(removed, bool) else 0
-
-    def count_registered_invoices(self) -> int:
-        _, data = self._send("GET", INVOICES_PATH)
-        return len(data.get(INVOICES_KEY) or [])
 
     def register_invoice(self, request: ReqRegistration) -> ResRegistrationReceipt:
         http_status, data = self._send(

@@ -60,13 +60,13 @@ class ResReferenceData(BaseModel):
     lookup_failure_reason: StrictStr = ""
 
 
-class ResStartOver(BaseModel):
+class ResAccountingInvoice(BaseModel):
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="ignore")
 
-    unregistered: StrictInt = 0
-    documents_cleared: StrictInt = 0
-    still_registered: StrictInt = 0
+    accounting_id: StrictStr
+    partner_code: StrictStr
+    invoice_number: StrictStr
 
 
 

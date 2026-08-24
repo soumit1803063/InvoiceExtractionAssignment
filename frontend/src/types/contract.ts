@@ -69,12 +69,6 @@ export interface DocumentListResponse {
   documents: InvoiceDocument[];
 }
 
-export interface StartOverResult {
-  unregistered: number;
-  documents_cleared: number;
-  still_registered: number;
-}
-
 
 export interface HealthResponse {
   status: string;

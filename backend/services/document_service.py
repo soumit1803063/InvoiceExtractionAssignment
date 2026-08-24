@@ -16,8 +16,9 @@ from ..core import (
     DbStoredDocument,
     DbVerification,
     DocumentStatus,
+    ErrorCode,
     PartnerDirectory,
-    ResStartOver,
+    ResDocumentList,
     TaxRateTable,
     Utils,
 )
@@ -79,24 +80,50 @@ class InvoiceIntakeService:
     def list_documents(self) -> list[DbDocument]:
         return [stored.document for stored in self._repository.list_all()]
 
-    def clear(self) -> int:
-        stored = self._repository.list_all()
-        for entity in stored:
-            source = Path(entity.source_path)
+    def unregister(self, document_id: str) -> Optional[ResDocumentList]:
+        stored = self._repository.get(document_id)
+        if stored is None:
+            return None
+        with self._registration_lock:
+            self._rebuild_ledger_without(stored)
+            source = Path(stored.source_path)
             if source.is_file() and source.parent == Path(self._settings.invoice_directory):
                 source.unlink(missing_ok=True)
-        self._repository.delete_all()
-        return len(stored)
+            self._repository.delete(document_id)
+        return ResDocumentList(documents=self.list_documents())
 
-    def start_over(self) -> ResStartOver:
+    def _rebuild_ledger_without(self, removed: DbStoredDocument) -> None:
+        if not DocumentPolicy.is_registered(removed.document):
+            return
         gateway = self._reference_data.gateway
-        unregistered = gateway.delete_registered_invoices()
-        documents_cleared = self.clear()
-        return ResStartOver(
-            unregistered=unregistered,
-            documents_cleared=documents_cleared,
-            still_registered=gateway.count_registered_invoices(),
-        )
+        removed_accounting_id = removed.document.registration.accounting_id
+        keepers = []
+        for entry in gateway.fetch_registered_invoices():
+            if entry.accounting_id == removed_accounting_id:
+                continue
+            owner_id = self._repository.find_duplicate(
+                entry.partner_code, entry.invoice_number, removed.document.document_id
+            )
+            owner = self._repository.get(owner_id) if owner_id else None
+            if owner is None:
+                raise IntakeError(
+                    ErrorCode.UNREGISTER_UNSAFE,
+                    ErrorMessage.UNREGISTER_UNSAFE.format(
+                        invoice_number=entry.invoice_number, partner_code=entry.partner_code
+                    ),
+                )
+            keepers.append(owner)
+        gateway.delete_registered_invoices()
+        for keeper in keepers:
+            registration = self._send_registration(keeper.document.fields)
+            refusal = (
+                []
+                if registration.accounting_id
+                else [ErrorMessage.REGISTRATION_REFUSED.format(detail=registration.error_message)]
+            )
+            self._rebuild_and_save(
+                keeper, keeper.document.fields, registration, extra_reasons=refusal
+            )
 
     def get_document(self, document_id: str) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)

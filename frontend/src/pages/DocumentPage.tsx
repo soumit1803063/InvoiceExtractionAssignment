@@ -10,9 +10,16 @@ interface DocumentPageProps {
   documents: InvoiceDocument[];
   isLoading: boolean;
   onDocumentUpdated: (document: InvoiceDocument) => void;
+  onDocumentsReplaced: (documents: InvoiceDocument[]) => void;
 }
 
-export function DocumentPage({ document, documents, isLoading, onDocumentUpdated }: DocumentPageProps) {
+export function DocumentPage({
+  document,
+  documents,
+  isLoading,
+  onDocumentUpdated,
+  onDocumentsReplaced
+}: DocumentPageProps) {
   const words = useWords();
 
   if (!document) {
@@ -68,6 +75,7 @@ export function DocumentPage({ document, documents, isLoading, onDocumentUpdated
           document={document}
           duplicateSourceName={duplicateSourceName}
           onDocumentUpdated={onDocumentUpdated}
+          onDocumentsReplaced={onDocumentsReplaced}
         />
       )}
     </div>

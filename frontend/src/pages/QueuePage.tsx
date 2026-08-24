@@ -1,50 +1,16 @@
-import { useState } from 'react';
-import { startOver } from '../api/documents';
 import { DocumentList } from '../components/DocumentList';
-import { MessageBanner } from '../components/MessageBanner';
 import { navigateTo } from '../hooks/useHashRoute';
-import { fill, useWords } from '../i18n';
+import { useWords } from '../i18n';
 import type { InvoiceDocument } from '../types/contract';
 
 interface QueuePageProps {
   documents: InvoiceDocument[];
   tab: 'reading' | 'queue' | 'logged';
   isLoading: boolean;
-  onCleared: () => void;
 }
 
-export function QueuePage({ documents, tab, isLoading, onCleared }: QueuePageProps) {
+export function QueuePage({ documents, tab, isLoading }: QueuePageProps) {
   const words = useWords();
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [clearError, setClearError] = useState<string | null>(null);
-  const [clearSummary, setClearSummary] = useState<string | null>(null);
-
-  async function startEverythingOver() {
-    setIsClearing(true);
-    setClearError(null);
-    try {
-      const outcome = await startOver();
-      setClearSummary(
-        fill(
-          words.startOverDone,
-          String(outcome.unregistered),
-          String(outcome.documents_cleared)
-        )
-      );
-      setClearError(
-        outcome.still_registered > 0
-          ? fill(words.startOverIncomplete, String(outcome.still_registered))
-          : null
-      );
-      setIsConfirming(false);
-      onCleared();
-    } catch (cause) {
-      setClearError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setIsClearing(false);
-    }
-  }
 
   const logged = documents.filter((candidate) => candidate.status === 'registered');
   const readingNow = documents.filter((candidate) => candidate.status === 'processing');
@@ -85,46 +51,7 @@ export function QueuePage({ documents, tab, isLoading, onCleared }: QueuePagePro
         >
           {words.logged} <span className="queue-tabs__count">{logged.length}</span>
         </button>
-        <button
-          type="button"
-          className="button button--ghost queue-tabs__clear"
-          onClick={() => setIsConfirming(true)}
-          disabled={isClearing}
-        >
-          {isClearing ? words.startingOver : words.startOver}
-        </button>
       </div>
-
-      {isConfirming ? (
-        <MessageBanner
-          tone="warning"
-          title={words.startOverConfirm}
-          action={
-            <>
-              <button type="button" className="button button--ghost" onClick={() => setIsConfirming(false)}>
-                {words.cancel}
-              </button>
-              <button type="button" className="button button--danger" onClick={startEverythingOver} disabled={isClearing}>
-                {isClearing ? words.startingOver : words.yesStartOver}
-              </button>
-            </>
-          }
-        >
-          <p>{words.startOverExplained}</p>
-        </MessageBanner>
-      ) : null}
-
-      {clearError ? (
-        <MessageBanner tone="danger" title={words.startOverFailed}>
-          <p>{clearError}</p>
-        </MessageBanner>
-      ) : null}
-
-      {clearSummary && !isConfirming ? (
-        <MessageBanner tone="info" title={words.startOver}>
-          <p>{clearSummary}</p>
-        </MessageBanner>
-      ) : null}
 
       <section className="app__queue">
         <div className="app__queue-header">
