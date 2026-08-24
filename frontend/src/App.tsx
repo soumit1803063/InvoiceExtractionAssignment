@@ -7,6 +7,7 @@ import { useAsyncData } from './hooks/useAsyncData';
 import { LanguageProvider, useWords } from './i18n';
 import { navigateTo, useHashRoute } from './hooks/useHashRoute';
 import { useInterval } from './hooks/useInterval';
+import { DashboardPage } from './pages/DashboardPage';
 import { DocumentPage } from './pages/DocumentPage';
 import { QueuePage } from './pages/QueuePage';
 import { UploadPage } from './pages/UploadPage';
@@ -18,7 +19,8 @@ const NAV_LINKS = [
   { route: '/upload', word: 'upload' },
   { route: '/reading', word: 'readingTab' },
   { route: '/queue', word: 'queue' },
-  { route: '/logged', word: 'logged' }
+  { route: '/logged', word: 'logged' },
+  { route: '/dashboard', word: 'dashboard' }
 ] as const;
 
 export function App() {
@@ -114,6 +116,8 @@ function Screen({ languageToggle }: { languageToggle: ReactNode }) {
           />
         ) : route === '/upload' ? (
           <UploadPage onDocumentAccepted={applyDocumentUpdate} />
+        ) : route === '/dashboard' ? (
+          <DashboardPage />
         ) : (
           <QueuePage
             documents={documents}
