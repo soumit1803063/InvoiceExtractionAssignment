@@ -1,7 +1,7 @@
 # Invoice Intake
 
 Reads Japanese supplier invoices, extracts them into structured data, verifies the numbers, and
-registers them into the accounting system through its API — with a review screen in front of the
+registers them into the accounting system through its API, with a review screen in front of the
 irreversible step.
 
 ## Contents
@@ -53,7 +53,7 @@ Create a `.env` file next to `run.py`:
 |---|---|
 | `OPENROUTER_API_KEY` | The reader. Several models are configured, free ones included. |
 | `GEMINI_API_KEY` | Optional. Tried first, and used as the last resort when OpenRouter is rate-limited. |
-| `ACCOUNTING_API_KEY` | `demo-key-1234` — the key the assignment publishes. |
+| `ACCOUNTING_API_KEY` | `demo-key-1234`, the key the assignment publishes. |
 
 Without a model key the app still runs: text-layer PDFs are read locally, and scans are held for a
 human with that reason shown on screen.
@@ -84,19 +84,19 @@ The **Reading** tab lists documents currently being read. How a file is read dep
 
 #### 2.3.1 PDF that already contains text
 
-Some PDFs carry real, selectable text inside the file. That text is pulled out directly — no image
-and no OCR — and an AI model turns it into the invoice fields. Under a second per document, and no
-image is ever sent to a model.
+Some PDFs carry real, selectable text inside the file. That text is pulled out directly. No image, no
+OCR. An AI model then turns it into the invoice fields. Under a second per document, and no image is
+ever sent to a model.
 
 #### 2.3.2 Scan, photo, or image-only PDF
 
-There is no text to pull out, so each page is converted to a full-quality image and sent to a vision
-model — an AI model that reads pictures rather than text.
+There is no text to pull out. Each page is converted to a full-quality image and sent to a vision
+model, an AI model that reads pictures rather than text.
 
-**Orientation correction** happens first: a page that was scanned upside down or sideways is turned
+**Orientation correction** happens first. A page that was scanned upside down or sideways is turned
 upright, because a model reads a crooked page badly. The turn is an exact quarter rotation, so no
-pixel is altered or blurred. It uses Tesseract, a free OCR tool, if it is installed on the machine;
-without it pages are passed through untouched and everything else still works.
+pixel is altered or blurred. It uses Tesseract, a free OCR tool, if it is installed on the machine.
+Without it pages are passed through untouched and everything else still works.
 
 Roughly half a minute per page.
 
@@ -109,8 +109,8 @@ both are shown on the review screen.
 
 ### 2.4 The accounting system connection
 
-The header shows whether the accounting system is answering. If it is not, nothing is registered —
-documents queue and wait.
+The header shows whether the accounting system is answering. If it is not, nothing is registered.
+Documents queue and wait.
 
 The app never imports or launches `accounting_api.py`. It is treated as a separate system on another
 server and reached over HTTP only, with `X-API-Key` on every call except `/health`.
@@ -124,11 +124,11 @@ server and reached over HTTP only, with `X-API-Key` on every call except `/healt
 | `GET /tax-codes` | `tax_code` and `rate` (`T10` = 10%, `T08` = 8%) | Recalculating tax and rejecting unknown codes |
 | `POST /invoices` | `accounting_id` | Registering the invoice |
 | `GET /invoices` | Everything the accounting system currently holds | Rebuilding the ledger when one document is unregistered |
-| `DELETE /invoices` | How many records were removed | The same rebuild — see [2.9](#29-unregistering) |
+| `DELETE /invoices` | How many records were removed | The same rebuild. See [2.9](#29-unregistering) |
 
 The supplier master and the tax codes are re-fetched at most once a minute and reused in between. If
-either cannot be read, the supplier check **fails with the reason shown** — system unreachable, or API
-key rejected — instead of quietly passing.
+either cannot be read, the supplier check **fails with the reason shown**, either system unreachable
+or API key rejected, instead of quietly passing.
 
 When the accounting system returns an error, its code and HTTP status are stored on the document and
 shown on screen, rather than being swallowed.
@@ -139,9 +139,9 @@ shown on screen, rather than being swallowed.
 
 The **Dashboard** tab shows what the accounting system will accept: whether it is reachable, the full
 supplier master, and the tax code list with its rates. It is the answer to "why was this invoice
-blocked" in most cases — a supplier that is not on this page cannot be registered, and a tax code
-that is not on this page fails the check. Opening the page reads it from the accounting system, and
-**Refresh** reads it again — both through the one-minute cache above, so a change made in the
+blocked" in most cases. A supplier that is not on this page cannot be registered, and a tax code that
+is not on this page fails the check. Opening the page reads it from the accounting system, and
+**Refresh** reads it again. Both go through the one-minute cache above, so a change made in the
 accounting system shows up within a minute and without restarting anything.
 
 #### 2.4.3 Matching the supplier
@@ -155,16 +155,16 @@ order, stopping at the first hit:
 2. **Partner code** against `partner_code`.
 3. **Supplier name printed on the invoice** against `name` and `aliases`, ignoring case, spaces, and
    full-width / half-width differences. An exact match wins. Failing that, a partial match counts
-   only when exactly one supplier matches — never when two could.
+   only when exactly one supplier matches, never when two could.
 
 Once matched, the `partner_code` from the master replaces whatever was read off the page, so the
 value sent onward is always the accounting system's own.
 
 #### 2.4.4 Using the tax codes
 
-The rate table fetched from the API does two jobs: any line carrying a code that is not in the table
-fails, and tax is recalculated per code as `subtotal for that code × rate`, **rounded down** — the
-same rule the accounting system applies before it accepts anything.
+The rate table fetched from the API does two jobs. Any line carrying a code that is not in the table
+fails, and tax is recalculated per code as `subtotal for that code × rate`, **rounded down**. That is
+the same rule the accounting system applies before it accepts anything.
 
 #### 2.4.5 Registering
 
@@ -189,30 +189,30 @@ sent onward. Each one states its result, what it protects against, and the numbe
 | 6 | This invoice is not a duplicate | Paying the same invoice twice |
 | 7 | All required fields are filled in | An outright rejection from the accounting system |
 
-Checks 1–3 repeat the accounting system's own arithmetic here, so numbers it would reject are never
-sent to it. Check 4 is the one aimed at AI error specifically: every other check can be passed by a
-set of numbers that add up correctly but are simply not the numbers printed on the paper.
+Checks 1 to 3 repeat the accounting system's own arithmetic here, so numbers it would reject are
+never sent to it. Check 4 is the one aimed at AI error specifically. Every other check can be passed
+by a set of numbers that add up correctly but are simply not the numbers printed on the paper.
 
-When all seven pass, the invoice is registered automatically — no button, no confirmation.
+When all seven pass, the invoice is registered automatically. No button, no confirmation.
 
 ### 2.6 Blocked
 
 ![Blocked tab](public/screenshots/11-blocked-list.png)
 
 A document that fails any check goes to **Blocked** and stops there. The tab shows the score at a
-glance — `6/7` for a document with one failure, `1/7` for one the model barely read.
+glance: `6/7` for a document with one failure, `1/7` for one the model barely read.
 
 #### 2.6.1 A failed check
 
-A failure is shown twice: once on the check itself, with the numbers behind it, and again under
+A failure is shown twice. Once on the check itself, with the numbers behind it, and again under
 **Blocking registration** at the bottom, so the reviewer does not have to scan the whole panel to
 find out what is holding the document.
 
 #### 2.6.2 Duplicates
 
 Duplicates are caught before registration, by partner code plus invoice number, and the earlier
-document is named — as in the screenshot above, where a second copy of `invoice_01.pdf` passes every
-other check and is stopped by that one.
+document is named. In the screenshot above a second copy of `invoice_01.pdf` passes every other check
+and is stopped by that one.
 
 ### 2.7 Review and revalidate
 
@@ -232,7 +232,7 @@ and fixes the data without switching windows.
 throws the edits away. Correcting a field never re-reads the document and costs nothing extra, and
 the process id stays the same.
 
-The outcome is the same as a first read: all seven pass and it registers, or it returns to **Blocked**
+The outcome is the same as a first read. All seven pass and it registers, or it returns to **Blocked**
 with the remaining failures listed.
 
 ### 2.8 Registered
@@ -245,7 +245,7 @@ accepted, and stay listed permanently.
 ![A registered document](public/screenshots/05-registered-document.png)
 
 A registered document is read-only. Its fields cannot be edited, it is never re-read, and it is never
-sent again — the app registers one document at a time, so the same invoice can never be sent twice by
+sent again. The app registers one document at a time, so the same invoice can never be sent twice by
 two things running at once.
 
 ### 2.9 Unregistering
@@ -257,11 +257,11 @@ The accounting system has no update call. It cannot delete one record. The only 
 
 So **Unregister** rebuilds the ledger. Step by step:
 
-1. Read every invoice the accounting system holds — `GET /invoices`.
+1. Read every invoice the accounting system holds with `GET /invoices`.
 2. Match each one to a document this app still holds.
 3. If any record cannot be matched, stop. Nothing is deleted. The reason names that invoice.
-4. Delete all records — `DELETE /invoices`.
-5. Register every kept document again — `POST /invoices`.
+4. Delete all records with `DELETE /invoices`.
+5. Register every kept document again with `POST /invoices`.
 6. Delete the chosen document and its uploaded file from this app.
 
 Step 3 is the guard. A record registered by another tool, or by an earlier run against the same live

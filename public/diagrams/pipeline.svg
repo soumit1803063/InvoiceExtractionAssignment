@@ -53,7 +53,7 @@
   <text class="t" x="380" y="471">Extracted invoice data</text>
 
   <rect class="box" x="240" y="508" width="280" height="44" rx="6"/>
-  <text class="t" x="380" y="535">Verification &#8212; seven checks</text>
+  <text class="t" x="380" y="535">Verification &#183; seven checks</text>
 
   <rect class="dec" x="230" y="572" width="300" height="48" rx="24"/>
   <text class="td" x="380" y="601">Do all seven checks pass?</text>
@@ -71,7 +71,7 @@
   <text class="tg" x="675" y="831">Registered &#183; accounting id</text>
 
   <rect class="box" x="85" y="804" width="230" height="44" rx="6"/>
-  <text class="t" x="200" y="831">Review screen &#8212; edit fields</text>
+  <text class="t" x="200" y="831">Review screen &#183; edit fields</text>
 
   <rect class="box" x="85" y="868" width="230" height="44" rx="6"/>
   <text class="t" x="200" y="895">Save &amp; Revalidate</text>
@@ -92,7 +92,7 @@
   <path class="flow" d="M 380 196 L 380 214 L 200 214 L 200 230"/>
   <path class="flow" d="M 380 196 L 380 214 L 570 214 L 570 230"/>
   <text class="lbl" x="278" y="208">yes</text>
-  <text class="lbl" x="480" y="208">no &#8212; scan or photo</text>
+  <text class="lbl" x="480" y="208">no &#183; scan or photo</text>
 
   <path class="flow" d="M 200 276 L 200 358"/>
   <path class="flow" d="M 570 276 L 570 294"/>
