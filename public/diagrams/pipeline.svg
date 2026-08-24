@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 950" width="940" height="950" font-family="Segoe UI, system-ui, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <style>
+    .box  { fill:#eef3fb; stroke:#1f5fd8; stroke-width:1.4; }
+    .dec  { fill:#f4f1fc; stroke:#6b46c1; stroke-width:1.4; }
+    .warn { fill:#fdf1e3; stroke:#d97706; stroke-width:1.6; }
+    .good { fill:#e7f6ed; stroke:#1a7f47; stroke-width:1.6; }
+    .api  { fill:#f5f7fa; stroke:#64748b; stroke-width:1.3; stroke-dasharray:5 3; }
+    .t    { font-size:13px; fill:#16233a; text-anchor:middle; }
+    .td   { font-size:13px; fill:#43318a; text-anchor:middle; }
+    .tw   { font-size:13px; fill:#8a4a06; text-anchor:middle; font-weight:600; }
+    .tg   { font-size:13px; fill:#126035; text-anchor:middle; font-weight:600; }
+    .lbl  { font-size:11px; fill:#64748b; text-anchor:middle; }
+    .api-t{ font-size:11.5px; fill:#334155; text-anchor:start; }
+    .api-h{ font-size:11.5px; fill:#0f1b2d; text-anchor:start; font-weight:700; }
+    .mono { font-family:Consolas, monospace; font-size:11.5px; fill:#1a3a63; text-anchor:start; }
+    .flow { fill:none; stroke:#64748b; stroke-width:1.5; marker-end:url(#a); }
+    .dash { fill:none; stroke:#94a3b8; stroke-width:1.4; stroke-dasharray:5 3; marker-end:url(#ad); }
+  </style>
+
+  <rect class="box" x="255" y="20" width="250" height="44" rx="6"/>
+  <text class="t" x="380" y="47">Upload &#183; PDF / JPG / PNG</text>
+
+  <rect class="box" x="255" y="84" width="250" height="44" rx="6"/>
+  <text class="t" x="380" y="111">Store file &#183; assign process id</text>
+
+  <rect class="dec" x="230" y="148" width="300" height="48" rx="24"/>
+  <text class="td" x="380" y="177">Does the PDF carry a text layer?</text>
+
+  <rect class="box" x="85" y="232" width="230" height="44" rx="6"/>
+  <text class="t" x="200" y="259">Parse locally (markitdown)</text>
+
+  <rect class="box" x="445" y="232" width="250" height="44" rx="6"/>
+  <text class="t" x="570" y="259">Render page &#8594; lossless PNG</text>
+
+  <rect class="box" x="445" y="296" width="250" height="44" rx="6"/>
+  <text class="t" x="570" y="323">Orientation &#8212; exact 90&#176; turn</text>
+
+  <rect class="box" x="85" y="360" width="230" height="44" rx="6"/>
+  <text class="t" x="200" y="387">Text model chain</text>
+
+  <rect class="box" x="445" y="360" width="250" height="44" rx="6"/>
+  <text class="t" x="570" y="387">Vision model chain</text>
+
+  <rect class="box" x="240" y="444" width="280" height="44" rx="6"/>
+  <text class="t" x="380" y="471">Structured invoice fields</text>
+
+  <rect class="box" x="240" y="508" width="280" height="44" rx="6"/>
+  <text class="t" x="380" y="535">Verification &#8212; seven checks</text>
+
+  <rect class="dec" x="230" y="572" width="300" height="48" rx="24"/>
+  <text class="td" x="380" y="601">Do all seven checks pass?</text>
+
+  <rect class="warn" x="85" y="656" width="230" height="44" rx="6"/>
+  <text class="tw" x="200" y="683">Blocked</text>
+
+  <rect class="box" x="455" y="656" width="230" height="44" rx="6"/>
+  <text class="t" x="570" y="683">POST /invoices</text>
+
+  <rect class="dec" x="445" y="720" width="250" height="48" rx="24"/>
+  <text class="td" x="570" y="749">Accepted?</text>
+
+  <rect class="good" x="550" y="804" width="250" height="44" rx="6"/>
+  <text class="tg" x="675" y="831">Registered &#183; accounting id</text>
+
+  <rect class="box" x="85" y="804" width="230" height="44" rx="6"/>
+  <text class="t" x="200" y="831">Review screen &#8212; edit fields</text>
+
+  <rect class="box" x="85" y="868" width="230" height="44" rx="6"/>
+  <text class="t" x="200" y="895">Save &amp; Revalidate</text>
+
+  <rect class="api" x="730" y="424" width="200" height="156" rx="6"/>
+  <text class="api-h" x="746" y="446">Accounting system</text>
+  <text class="api-t" x="746" y="464">reached over HTTP only</text>
+  <text class="mono" x="746" y="490">GET /health</text>
+  <text class="mono" x="746" y="510">GET /partners</text>
+  <text class="mono" x="746" y="530">GET /tax-codes</text>
+  <text class="mono" x="746" y="550">POST /invoices</text>
+  <text class="lbl" x="830" y="570" text-anchor="middle">X-API-Key on all but /health</text>
+
+  <path class="flow" d="M 380 64 L 380 82"/>
+  <path class="flow" d="M 380 128 L 380 146"/>
+  <path class="flow" d="M 380 196 L 380 214 L 200 214 L 200 230"/>
+  <path class="flow" d="M 380 196 L 380 214 L 570 214 L 570 230"/>
+  <text class="lbl" x="278" y="208">yes</text>
+  <text class="lbl" x="480" y="208">no &#8212; scan or photo</text>
+
+  <path class="flow" d="M 200 276 L 200 358"/>
+  <path class="flow" d="M 570 276 L 570 294"/>
+  <path class="flow" d="M 570 340 L 570 358"/>
+
+  <path class="flow" d="M 200 404 L 200 424 L 380 424 L 380 442"/>
+  <path class="flow" d="M 570 404 L 570 424 L 380 424 L 380 442"/>
+
+  <path class="flow" d="M 380 488 L 380 506"/>
+  <path class="flow" d="M 380 552 L 380 570"/>
+
+  <path class="flow" d="M 380 620 L 380 638 L 200 638 L 200 654"/>
+  <path class="flow" d="M 380 620 L 380 638 L 570 638 L 570 654"/>
+  <text class="lbl" x="268" y="632">any check fails</text>
+  <text class="lbl" x="482" y="632">all pass</text>
+
+  <path class="flow" d="M 570 700 L 570 718"/>
+  <path class="flow" d="M 570 768 L 570 786 L 675 786 L 675 802"/>
+  <text class="lbl" x="632" y="780">201</text>
+
+  <path class="flow" d="M 445 744 L 350 744 L 350 678 L 317 678"/>
+  <text class="lbl" x="380" y="738">refused</text>
+
+  <path class="flow" d="M 200 700 L 200 802"/>
+  <path class="flow" d="M 200 848 L 200 866"/>
+  <path class="flow" d="M 85 890 L 40 890 L 40 530 L 238 530"/>
+  <text class="lbl" x="140" y="548">re-runs every check</text>
+
+  <path class="dash" d="M 728 530 L 522 530"/>
+  <text class="lbl" x="625" y="522">partner master &#183; tax codes</text>
+
+  <path class="dash" d="M 687 678 L 830 678 L 830 582"/>
+  <text class="lbl" x="762" y="670">registers</text>
+</svg>
