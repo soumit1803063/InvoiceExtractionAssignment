@@ -34,6 +34,8 @@ NO_RESPONSE_HTTP_STATUS = 0
 SUCCESS_STATUS_FLOOR = 200
 SUCCESS_STATUS_CEILING = 300
 PARTNERS_KEY = "partners"
+INVOICES_KEY = "invoices"
+REMOVED_KEY = "removed"
 TAX_CODES_KEY = "tax_codes"
 TAX_CODE_KEY = "tax_code"
 TAX_RATE_KEY = "rate"
@@ -229,6 +231,15 @@ class HttpAccountingGateway:
             if code and isinstance(rate, (int, float)) and not isinstance(rate, bool):
                 rates.append(ResTaxRate(code=code, rate=rate))
         return TaxRateTable(rates)
+
+    def delete_registered_invoices(self) -> int:
+        _, data = self._send("DELETE", INVOICES_PATH)
+        removed = data.get(REMOVED_KEY)
+        return removed if isinstance(removed, int) and not isinstance(removed, bool) else 0
+
+    def count_registered_invoices(self) -> int:
+        _, data = self._send("GET", INVOICES_PATH)
+        return len(data.get(INVOICES_KEY) or [])
 
     def register_invoice(self, request: ReqRegistration) -> ResRegistrationReceipt:
         http_status, data = self._send(

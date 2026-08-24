@@ -60,6 +60,15 @@ class ResReferenceData(BaseModel):
     lookup_failure_reason: StrictStr = ""
 
 
+class ResStartOver(BaseModel):
+
+    model_config = ConfigDict(frozen=True)
+
+    unregistered: StrictInt = 0
+    documents_cleared: StrictInt = 0
+    still_registered: StrictInt = 0
+
+
 
 class TaxRateTable:
 

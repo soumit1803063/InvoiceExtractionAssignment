@@ -6,10 +6,12 @@ from fastapi.responses import FileResponse
 from ..core import (
     DbDocument,
     ErrorMessage,
+    IntakeError,
     ReqFieldsUpdate,
     ResDocumentList,
     ResHealth,
     ResReferenceData,
+    ResStartOver,
     Utils,
 )
 from ..services.accounting_service import HttpAccountingGateway
@@ -49,10 +51,12 @@ def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -
     def scan_documents() -> ResDocumentList:
         return ResDocumentList(documents=intake.scan())
 
-    @router.delete("/documents", response_model=ResDocumentList)
-    def clear_documents() -> ResDocumentList:
-        intake.clear()
-        return ResDocumentList(documents=intake.list_documents())
+    @router.delete("/documents", response_model=ResStartOver)
+    def start_over() -> ResStartOver:
+        try:
+            return intake.start_over()
+        except IntakeError as error:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, error.message) from error
 
     @router.get("/documents", response_model=ResDocumentList)
     def list_documents() -> ResDocumentList:

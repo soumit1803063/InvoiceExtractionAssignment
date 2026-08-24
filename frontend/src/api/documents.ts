@@ -4,7 +4,8 @@ import type {
   HealthResponse,
   InvoiceDocument,
   InvoiceFieldsUpdate,
-  ReferenceData
+  ReferenceData,
+  StartOverResult
 } from '../types/contract';
 
 function abortable(signal?: AbortSignal): RequestInit {
@@ -39,8 +40,8 @@ export async function saveDocumentFields(
 }
 
 
-export async function clearDocuments(signal?: AbortSignal): Promise<DocumentListResponse> {
-  return requestJson<DocumentListResponse>('/documents', { method: 'DELETE', ...abortable(signal) });
+export async function startOver(signal?: AbortSignal): Promise<StartOverResult> {
+  return requestJson<StartOverResult>('/documents', { method: 'DELETE', ...abortable(signal) });
 }
 
 export async function uploadDocument(file: File, signal?: AbortSignal): Promise<InvoiceDocument> {

@@ -17,6 +17,7 @@ from ..core import (
     DbVerification,
     DocumentStatus,
     PartnerDirectory,
+    ResStartOver,
     TaxRateTable,
     Utils,
 )
@@ -86,6 +87,16 @@ class InvoiceIntakeService:
                 source.unlink(missing_ok=True)
         self._repository.delete_all()
         return len(stored)
+
+    def start_over(self) -> ResStartOver:
+        gateway = self._reference_data.gateway
+        unregistered = gateway.delete_registered_invoices()
+        documents_cleared = self.clear()
+        return ResStartOver(
+            unregistered=unregistered,
+            documents_cleared=documents_cleared,
+            still_registered=gateway.count_registered_invoices(),
+        )
 
     def get_document(self, document_id: str) -> Optional[DbDocument]:
         stored = self._repository.get(document_id)
