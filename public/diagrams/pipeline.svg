@@ -29,28 +29,28 @@
   <text class="t" x="380" y="47">Upload &#183; PDF / JPG / PNG</text>
 
   <rect class="box" x="255" y="84" width="250" height="44" rx="6"/>
-  <text class="t" x="380" y="111">Store file &#183; assign process id</text>
+  <text class="t" x="380" y="111">Save file &#183; assign a process id</text>
 
   <rect class="dec" x="230" y="148" width="300" height="48" rx="24"/>
-  <text class="td" x="380" y="177">Does the PDF carry a text layer?</text>
+  <text class="td" x="380" y="177">Does the file contain real text?</text>
 
   <rect class="box" x="85" y="232" width="230" height="44" rx="6"/>
-  <text class="t" x="200" y="259">Parse locally (markitdown)</text>
+  <text class="t" x="200" y="259">Read the text directly (no AI)</text>
 
   <rect class="box" x="445" y="232" width="250" height="44" rx="6"/>
-  <text class="t" x="570" y="259">Render page &#8594; lossless PNG</text>
+  <text class="t" x="570" y="259">Convert each page to an image</text>
 
   <rect class="box" x="445" y="296" width="250" height="44" rx="6"/>
-  <text class="t" x="570" y="323">Orientation &#8212; exact 90&#176; turn</text>
+  <text class="t" x="570" y="323">Orientation correction</text>
 
   <rect class="box" x="85" y="360" width="230" height="44" rx="6"/>
-  <text class="t" x="200" y="387">Text model chain</text>
+  <text class="t" x="200" y="387">Text AI model</text>
 
   <rect class="box" x="445" y="360" width="250" height="44" rx="6"/>
-  <text class="t" x="570" y="387">Vision model chain</text>
+  <text class="t" x="570" y="387">Vision AI model</text>
 
   <rect class="box" x="240" y="444" width="280" height="44" rx="6"/>
-  <text class="t" x="380" y="471">Structured invoice fields</text>
+  <text class="t" x="380" y="471">Extracted invoice data</text>
 
   <rect class="box" x="240" y="508" width="280" height="44" rx="6"/>
   <text class="t" x="380" y="535">Verification &#8212; seven checks</text>
@@ -109,7 +109,7 @@
 
   <path class="flow" d="M 570 700 L 570 718"/>
   <path class="flow" d="M 570 768 L 570 786 L 675 786 L 675 802"/>
-  <text class="lbl" x="632" y="780">201</text>
+  <text class="lbl" x="632" y="780">yes</text>
 
   <path class="flow" d="M 445 744 L 350 744 L 350 678 L 317 678"/>
   <text class="lbl" x="380" y="738">refused</text>
@@ -120,7 +120,7 @@
   <text class="lbl" x="140" y="548">re-runs every check</text>
 
   <path class="dash" d="M 728 530 L 522 530"/>
-  <text class="lbl" x="625" y="522">partner master &#183; tax codes</text>
+  <text class="lbl" x="625" y="522">supplier master &#183; tax codes</text>
 
   <path class="dash" d="M 687 678 L 830 678 L 830 582"/>
   <text class="lbl" x="762" y="670">registers</text>
