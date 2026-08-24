@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { clearDocuments } from '../api/documents';
+import { startOver } from '../api/documents';
 import { DocumentList } from '../components/DocumentList';
 import { MessageBanner } from '../components/MessageBanner';
 import { navigateTo } from '../hooks/useHashRoute';
-import { useWords } from '../i18n';
+import { fill, useWords } from '../i18n';
 import type { InvoiceDocument } from '../types/contract';
 
 interface QueuePageProps {
@@ -18,12 +18,25 @@ export function QueuePage({ documents, tab, isLoading, onCleared }: QueuePagePro
   const [isConfirming, setIsConfirming] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
+  const [clearSummary, setClearSummary] = useState<string | null>(null);
 
-  async function clearEverything() {
+  async function startEverythingOver() {
     setIsClearing(true);
     setClearError(null);
     try {
-      await clearDocuments();
+      const outcome = await startOver();
+      setClearSummary(
+        fill(
+          words.startOverDone,
+          String(outcome.unregistered),
+          String(outcome.documents_cleared)
+        )
+      );
+      setClearError(
+        outcome.still_registered > 0
+          ? fill(words.startOverIncomplete, String(outcome.still_registered))
+          : null
+      );
       setIsConfirming(false);
       onCleared();
     } catch (cause) {
@@ -76,34 +89,40 @@ export function QueuePage({ documents, tab, isLoading, onCleared }: QueuePagePro
           type="button"
           className="button button--ghost queue-tabs__clear"
           onClick={() => setIsConfirming(true)}
-          disabled={documents.length === 0 || isClearing}
+          disabled={isClearing}
         >
-          {isClearing ? words.clearing : words.clearEverything}
+          {isClearing ? words.startingOver : words.startOver}
         </button>
       </div>
 
       {isConfirming ? (
         <MessageBanner
           tone="warning"
-          title={words.clearEverythingConfirm}
+          title={words.startOverConfirm}
           action={
             <>
               <button type="button" className="button button--ghost" onClick={() => setIsConfirming(false)}>
                 {words.cancel}
               </button>
-              <button type="button" className="button button--danger" onClick={clearEverything} disabled={isClearing}>
-                {isClearing ? words.clearing : words.yesClearEverything}
+              <button type="button" className="button button--danger" onClick={startEverythingOver} disabled={isClearing}>
+                {isClearing ? words.startingOver : words.yesStartOver}
               </button>
             </>
           }
         >
-          <p>{words.clearEverythingExplained}</p>
+          <p>{words.startOverExplained}</p>
         </MessageBanner>
       ) : null}
 
       {clearError ? (
-        <MessageBanner tone="danger" title={words.clearingFailed}>
+        <MessageBanner tone="danger" title={words.startOverFailed}>
           <p>{clearError}</p>
+        </MessageBanner>
+      ) : null}
+
+      {clearSummary && !isConfirming ? (
+        <MessageBanner tone="info" title={words.startOver}>
+          <p>{clearSummary}</p>
         </MessageBanner>
       ) : null}
 

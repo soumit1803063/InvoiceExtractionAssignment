@@ -40,6 +40,7 @@ from .responses import (
     ResPartner,
     ResReferenceData,
     ResRegistrationReceipt,
+    ResStartOver,
     ResTaxRate,
     TaxRateTable,
 )
@@ -72,6 +73,7 @@ __all__ = [
     "ResPartner",
     "ResReferenceData",
     "ResRegistrationReceipt",
+    "ResStartOver",
     "ResTaxRate",
     "RuleCode",
     "TaxRateTable",
