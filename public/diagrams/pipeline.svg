@@ -76,14 +76,16 @@
   <rect class="box" x="85" y="868" width="230" height="44" rx="6"/>
   <text class="t" x="200" y="895">Save &amp; Revalidate</text>
 
-  <rect class="api" x="730" y="424" width="200" height="156" rx="6"/>
+  <rect class="api" x="730" y="424" width="200" height="196" rx="6"/>
   <text class="api-h" x="746" y="446">Accounting system</text>
   <text class="api-t" x="746" y="464">reached over HTTP only</text>
   <text class="mono" x="746" y="490">GET /health</text>
   <text class="mono" x="746" y="510">GET /partners</text>
   <text class="mono" x="746" y="530">GET /tax-codes</text>
   <text class="mono" x="746" y="550">POST /invoices</text>
-  <text class="lbl" x="830" y="570" text-anchor="middle">X-API-Key on all but /health</text>
+  <text class="mono" x="746" y="570">GET /invoices</text>
+  <text class="mono" x="746" y="590">DELETE /invoices</text>
+  <text class="lbl" x="830" y="610" text-anchor="middle">X-API-Key on all but /health</text>
 
   <path class="flow" d="M 380 64 L 380 82"/>
   <path class="flow" d="M 380 128 L 380 146"/>
