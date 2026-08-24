@@ -11,9 +11,9 @@ irreversible step.
   - [2.1 The pipeline](#21-the-pipeline)
   - [2.2 Upload](#22-upload)
   - [2.3 Reading](#23-reading)
-    - [2.3.1 PDF with a text layer](#231-pdf-with-a-text-layer)
+    - [2.3.1 PDF that already contains text](#231-pdf-that-already-contains-text)
     - [2.3.2 Scan, photo, or image-only PDF](#232-scan-photo-or-image-only-pdf)
-    - [2.3.3 Model fallback](#233-model-fallback)
+    - [2.3.3 If a model fails, the next one is tried](#233-if-a-model-fails-the-next-one-is-tried)
   - [2.4 The accounting system connection](#24-the-accounting-system-connection)
     - [2.4.1 What is fetched](#241-what-is-fetched)
     - [2.4.2 Matching the supplier](#242-matching-the-supplier)
@@ -39,9 +39,9 @@ python run.py
 
 Then open <http://localhost:8000>.
 
-One command creates `.venv` and installs dependencies (first run only), starts the accounting system
-on port 8080, and serves this app on port 8000. If port 8080 is already answering, that instance is
-left alone.
+That one command creates a private virtual environment and installs the dependencies (first run only),
+starts the accounting system on port 8080, and serves this app on port 8000. If something is already
+answering on port 8080, that instance is left alone and this app just talks to it.
 
 Create a `.env` file next to `run.py`:
 
@@ -62,8 +62,8 @@ human with that reason shown on screen.
 
 ![Pipeline](public/diagrams/pipeline.svg)
 
-Reading runs on a background worker, so the queue stays usable while models are working. Every
-document keeps one process id from upload to registration.
+Reading happens in the background, so the queue stays usable while models are working. Every document
+keeps the same process id from upload to registration.
 
 ### 2.2 Upload
 
@@ -78,25 +78,30 @@ invoices folder, given a process id, and queued. The upload returns immediately.
 
 The **Reading** tab lists documents currently being read. How a file is read depends on what it is.
 
-#### 2.3.1 PDF with a text layer
+#### 2.3.1 PDF that already contains text
 
-Parsed locally with markitdown into Markdown, then a text model turns that Markdown into fields. No
-vision call, no image rendering. Under a second per document.
+Some PDFs carry real, selectable text inside the file. That text is pulled out directly — no image
+and no OCR — and an AI model turns it into the invoice fields. Under a second per document, and no
+image is ever sent to a model.
 
 #### 2.3.2 Scan, photo, or image-only PDF
 
-Each page is rendered to a lossless PNG, straightened, and sent to a vision model.
+There is no text to pull out, so each page is converted to a full-quality image and sent to a vision
+model — an AI model that reads pictures rather than text.
 
-Straightening is an exact 90° rotation, so no pixel value changes. It uses Tesseract when installed;
-without it, pages pass through untouched and everything else still works.
+**Orientation correction** happens first: a page that was scanned upside down or sideways is turned
+upright, because a model reads a crooked page badly. The turn is an exact quarter rotation, so no
+pixel is altered or blurred. It uses Tesseract, a free OCR tool, if it is installed on the machine;
+without it pages are passed through untouched and everything else still works.
 
 Roughly half a minute per page.
 
-#### 2.3.3 Model fallback
+#### 2.3.3 If a model fails, the next one is tried
 
-Models are tried in order and the first usable answer wins. A rate limit, a timeout, or an empty
-answer moves to the next model instead of failing the document. The model that answered is recorded
-with its input and output token counts, shown on the review screen.
+Several models are configured in order, and the first one to return a usable answer wins. If a model
+is rate-limited, times out, or returns nothing, the next one is tried instead of the document
+failing. The model that actually answered is recorded, together with how many tokens it used, and
+both are shown on the review screen.
 
 ### 2.4 The accounting system connection
 
@@ -112,45 +117,46 @@ server and reached over HTTP only, with `X-API-Key` on every call except `/healt
 
 | Call | What comes back | What it is used for |
 |---|---|---|
-| `GET /health` | liveness | The header indicator; gates registration |
+| `GET /health` | Whether the system is up | The indicator in the header; nothing is registered while it is down |
 | `GET /partners` | `partner_code`, `name`, `aliases`, `registration_no` | Matching the supplier printed on the invoice |
-| `GET /tax-codes` | `tax_code` and `rate` (`T10` = 10%, `T08` = 8%) | Recomputing tax and rejecting unknown codes |
+| `GET /tax-codes` | `tax_code` and `rate` (`T10` = 10%, `T08` = 8%) | Recalculating tax and rejecting unknown codes |
 | `POST /invoices` | `accounting_id` | Registering the invoice |
 
-The partner master and tax codes are cached for 60 seconds and refreshed on demand. If either cannot
-be read, the supplier check fails with the reason stated — an unreachable system or a rejected API
-key — rather than silently passing.
+The supplier master and the tax codes are re-fetched at most once a minute and reused in between. If
+either cannot be read, the supplier check **fails with the reason shown** — system unreachable, or API
+key rejected — instead of quietly passing.
 
-Every response uses the assignment's envelope. A returned `error.code` is stored on the document with
-its HTTP status and shown to the reviewer.
+When the accounting system returns an error, its code and HTTP status are stored on the document and
+shown on screen, rather than being swallowed.
 
 #### 2.4.2 Matching the supplier
 
 ![Reference data panel](public/screenshots/06-accounting-reference.png)
 
-The partner master is shown next to the checks, with the matched row highlighted, so a reviewer can
-see what was matched against. Matching is tried in this order and stops at the first hit:
+The supplier master is shown next to the checks, with the matched row highlighted, so a reviewer can
+see what the invoice was matched against. Three ways are tried in order, stopping at the first hit:
 
-1. **Registration number** (登録番号, `T` + 13 digits) against `registration_no`.
+1. **Registration number** (登録番号, a `T` followed by 13 digits) against `registration_no`. This is
+   the most reliable, because it is a unique national identifier rather than a name.
 2. **Partner code** against `partner_code`.
-3. **Printed supplier name** against `name` and `aliases`, after normalising full-width characters to
-   ASCII, removing whitespace, and case-folding. An exact match wins; otherwise a containment match
-   is accepted only when exactly one partner matches.
+3. **Supplier name printed on the invoice** against `name` and `aliases`, ignoring case, spaces, and
+   full-width / half-width differences. An exact match wins. Failing that, a partial match counts
+   only when exactly one supplier matches — never when two could.
 
-On a match the master's `partner_code` replaces whatever was extracted, so the value sent onward is
-always the accounting system's own.
+Once matched, the `partner_code` from the master replaces whatever was read off the page, so the
+value sent onward is always the accounting system's own.
 
 #### 2.4.3 Using the tax codes
 
-The fetched rate table drives two things: any line carrying a code that is not in the table fails,
-and tax is recomputed as `floor(subtotal_for_code × rate)` per code — the same round-down rule the
-accounting system applies.
+The rate table fetched from the API does two jobs: any line carrying a code that is not in the table
+fails, and tax is recalculated per code as `subtotal for that code × rate`, **rounded down** — the
+same rule the accounting system applies before it accepts anything.
 
 #### 2.4.4 Registering
 
-The request is built from the document's fields. `quantity` and `unit_price` may be null; everything
-else must be present. A `201` returns an `accounting_id`; any error code is recorded and the document
-returns to the queue.
+The request is built from the document's fields. `quantity` and `unit_price` may be empty; everything
+else must be filled in. Success returns an `accounting_id`. Any error is recorded on the document and
+it goes back to the queue.
 
 ### 2.5 Verification
 
@@ -169,9 +175,9 @@ sent onward.
 | 6 | This invoice is not a duplicate | Paying the same invoice twice |
 | 7 | All required fields are filled in | An outright rejection from the accounting system |
 
-Checks 1–3 reproduce the accounting system's own arithmetic locally, so numbers that would be
-rejected are never sent. Check 4 is the one aimed at AI error specifically: every other check can be
-satisfied by numbers that are internally consistent but simply not the ones on the paper.
+Checks 1–3 repeat the accounting system's own arithmetic here, so numbers it would reject are never
+sent to it. Check 4 is the one aimed at AI error specifically: every other check can be passed by a
+set of numbers that add up correctly but are simply not the numbers printed on the paper.
 
 When all seven pass, the invoice is registered automatically — no button, no confirmation.
 
@@ -208,11 +214,11 @@ and fixes the data without switching windows.
 | Source page | The original PDF or image, zoomable, with a full-size link |
 | Invoice fields | Supplier, partner code, registration number, invoice number, dates, subtotal, tax, total, printed total |
 | Line items | Description, quantity, unit, unit price, amount and tax code per line; lines can be edited or removed |
-| Tokens used | Which model answered, and its input and output token counts |
+| Tokens used | Which model answered, and how many tokens it used |
 
-**Save & Revalidate** writes the correction and re-runs all seven checks on the server. **Revert**
-discards the edits. Correcting a field never re-reads the document and never spends another token,
-and the document id is kept.
+**Save & Revalidate** saves the correction and runs all seven checks again on the server. **Revert**
+throws the edits away. Correcting a field never re-reads the document and costs nothing extra, and
+the process id stays the same.
 
 The outcome is the same as a first read: all seven pass and it registers, or it returns to **Blocked**
 with the remaining failures listed.
@@ -224,9 +230,9 @@ with the remaining failures listed.
 Registered documents show the `accounting_id` returned by the accounting system and the time it was
 accepted, and stay listed permanently.
 
-Registration is one-way. The accounting system has no update and no single-record delete, so a
-registered document cannot be edited, re-read, or sent again. A lock around the registration step
-prevents two workers registering the same document twice.
+Registration is one-way. The accounting system has no update and no way to delete a single record, so
+a registered document cannot be edited, re-read, or sent again. The app also registers one document
+at a time, so the same invoice can never be sent twice by two things running at once.
 
 ---
 
@@ -237,13 +243,13 @@ backend/
   app.py               builds the application
   settings.py          every path, url, model name and threshold
   controllers/         the HTTP endpoints
-  core/                models, prompts, and the domain knowledge the agent uses
-  repositories/        persistence (SQLite)
+  core/                models, prompts, and the invoice knowledge given to the AI
+  repositories/        saving documents (SQLite)
   services/
     document_service.py     upload, background reading, registration
     validation/             the seven checks
-    accounting_service.py   HTTP client for the accounting system
-    extraction/             orientation, transcription, model chain
+    accounting_service.py   talks to the accounting system over HTTP
+    extraction/             orientation correction, text extraction, the model list
 frontend/              review screen (React); dist/ is the built output the backend serves
 public/
   storage/             the invoice files
