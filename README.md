@@ -1,17 +1,37 @@
 # Invoice Intake
 
-Reads Japanese supplier invoices, turns them into structured data, checks the numbers, and registers
-them into the accounting system through its API — with a human review screen in front of the
+Reads Japanese supplier invoices, extracts them into structured data, verifies the numbers, and
+registers them into the accounting system through its API — with a review screen in front of the
 irreversible step.
 
-The rule is simple: **an invoice registers itself only when every check passes. Anything else waits
-for a person.**
+## Contents
+
+- [1. Quick start](#1-quick-start)
+- [2. How this app works](#2-how-this-app-works)
+  - [2.1 The pipeline](#21-the-pipeline)
+  - [2.2 Upload](#22-upload)
+  - [2.3 Reading](#23-reading)
+    - [2.3.1 PDF with a text layer](#231-pdf-with-a-text-layer)
+    - [2.3.2 Scan, photo, or image-only PDF](#232-scan-photo-or-image-only-pdf)
+    - [2.3.3 Model fallback](#233-model-fallback)
+  - [2.4 The accounting system connection](#24-the-accounting-system-connection)
+    - [2.4.1 What is fetched](#241-what-is-fetched)
+    - [2.4.2 Matching the supplier](#242-matching-the-supplier)
+    - [2.4.3 Using the tax codes](#243-using-the-tax-codes)
+    - [2.4.4 Registering](#244-registering)
+  - [2.5 Verification](#25-verification)
+  - [2.6 Blocked](#26-blocked)
+    - [2.6.1 A failed check](#261-a-failed-check)
+    - [2.6.2 Duplicates](#262-duplicates)
+  - [2.7 Review and revalidate](#27-review-and-revalidate)
+  - [2.8 Registered](#28-registered)
+- [3. Project layout](#3-project-layout)
 
 ---
 
-## 1. Run it
+## 1. Quick start
 
-You need **Python 3.10 or newer. Nothing else.** No Node.js, no `pip install`, no Docker.
+Requires **Python 3.10 or newer. Nothing else.** No Node.js, no `pip install`, no Docker.
 
 ```
 python run.py
@@ -19,92 +39,125 @@ python run.py
 
 Then open <http://localhost:8000>.
 
-That one command does everything:
+One command creates `.venv` and installs dependencies (first run only), starts the accounting system
+on port 8080, and serves this app on port 8000. If port 8080 is already answering, that instance is
+left alone.
 
-1. Creates a virtual environment in `.venv` and installs the dependencies (first run only, a few
-   minutes).
-2. Starts the client's accounting system on port **8080**.
-3. Starts this application on port **8000** and serves the review screen.
+Create a `.env` file next to `run.py`:
 
-> On Windows use `python`. The `python3` command is a Microsoft Store alias and will not run the file.
-
-If something is already listening on port 8080, the accounting system is left alone and this app just
-talks to it.
-
-### Your LLM key
-
-Extraction needs a model. Create a file named `.env` next to `run.py`:
-
-```
-OPENROUTER_API_KEY=your-openrouter-key
-GEMINI_API_KEY=your-gemini-key
-ACCOUNTING_API_KEY=demo-key-1234
-```
-
-| Key | What it is for |
+| Key | Purpose |
 |---|---|
 | `OPENROUTER_API_KEY` | The reader. Free models are used, so a free account is enough. |
-| `GEMINI_API_KEY` | Optional. Tried first, and it is also the last resort when OpenRouter is rate-limited. |
-| `ACCOUNTING_API_KEY` | The key the assignment publishes for the mock accounting system. |
+| `GEMINI_API_KEY` | Optional. Tried first, and used as the last resort when OpenRouter is rate-limited. |
+| `ACCOUNTING_API_KEY` | `demo-key-1234` — the key the assignment publishes. |
 
-**The app still starts without a key.** PDFs that carry a real text layer are read locally with no API
-call at all. Scans and photographs need a model, and without one they are held for a human with that
-reason stated on screen.
-
----
-
-## 2. Connection to the accounting system
-
-The header shows, at all times, whether the accounting system is answering. If it is not, nothing is
-registered — invoices simply queue up and wait.
-
-![Accounting system reachable](public/screenshots/01-accounting-reachable.png)
-
-The app never imports or launches `accounting_api.py`. It is treated as a separate system on another
-server and reached over HTTP only: `/health`, `/partners`, `/tax-codes`, `POST /invoices`.
+Without a model key the app still runs: text-layer PDFs are read locally, and scans are held for a
+human with that reason shown on screen.
 
 ---
 
-## 3. Uploading invoices
+## 2. How this app works
 
-Drop files on the Upload screen. It accepts `.pdf`, `.jpg`, `.jpeg` and `.png`, several at a time.
+### 2.1 The pipeline
+
+![Pipeline](public/diagrams/pipeline.svg)
+
+Reading runs on a background worker, so the queue stays usable while models are working. Every
+document keeps one process id from upload to registration.
+
+### 2.2 Upload
 
 ![Upload screen](public/screenshots/02-upload.png)
 
-Each file is copied into the invoices folder, given a process id, and read in the background. You do
-not wait on the screen — the upload returns immediately.
+Accepts `.pdf`, `.jpg`, `.jpeg` and `.png`, several files at a time. Each file is copied into the
+invoices folder, given a process id, and queued. The upload returns immediately.
 
----
+### 2.3 Reading
 
-## 4. Reading
+![Reading tab](public/screenshots/03-reading.png)
 
-Reading happens on a background worker, so the queue stays usable while models are working. Every
-document carries its own process id, which is how you follow it end to end.
+The **Reading** tab lists documents currently being read. How a file is read depends on what it is.
 
-![Reading queue](public/screenshots/03-reading.png)
+#### 2.3.1 PDF with a text layer
 
-How a file is read depends on what it actually is:
+Parsed locally with markitdown into Markdown, then a text model turns that Markdown into fields. No
+vision call, no image rendering. Under a second per document.
 
-| Input | How it is read | Cost | Time |
-|---|---|---|---|
-| PDF with a text layer | Parsed locally, then a text model structures it | No vision call | Under a second |
-| Scan, photo, or image-only PDF | Each page rendered to a lossless PNG, then a vision model reads it | One vision call per page | Roughly half a minute |
+#### 2.3.2 Scan, photo, or image-only PDF
 
-Two things happen before the model sees the page:
+Each page is rendered to a lossless PNG, straightened, and sent to a vision model.
 
-- **Orientation.** If a page is upside down or on its side it is turned upright by an exact 90°
-  rotation, which changes no pixel values. This uses Tesseract if it is installed; without it, pages
-  pass through untouched and everything else still works.
-- **Model fallback.** Models are tried in order and the first usable answer wins. A rate limit, a
-  timeout, or an empty answer moves on to the next model instead of failing the document. The model
-  that actually answered is recorded, with its token counts.
+Straightening is an exact 90° rotation, so no pixel value changes. It uses Tesseract when installed;
+without it, pages pass through untouched and everything else still works.
 
----
+Roughly half a minute per page.
 
-## 5. Verification — where the automation stops
+#### 2.3.3 Model fallback
 
-This is the heart of the app. **Seven checks** run on every extraction, and every one of them must
-pass before anything is sent to the accounting system.
+Models are tried in order and the first usable answer wins. A rate limit, a timeout, or an empty
+answer moves to the next model instead of failing the document. The model that answered is recorded
+with its input and output token counts, shown on the review screen.
+
+### 2.4 The accounting system connection
+
+![Header connection indicator](public/screenshots/01-accounting-reachable.png)
+
+The header shows whether the accounting system is answering. If it is not, nothing is registered —
+documents queue and wait.
+
+The app never imports or launches `accounting_api.py`. It is treated as a separate system on another
+server and reached over HTTP only, with `X-API-Key` on every call except `/health`.
+
+#### 2.4.1 What is fetched
+
+| Call | What comes back | What it is used for |
+|---|---|---|
+| `GET /health` | liveness | The header indicator; gates registration |
+| `GET /partners` | `partner_code`, `name`, `aliases`, `registration_no` | Matching the supplier printed on the invoice |
+| `GET /tax-codes` | `tax_code` and `rate` (`T10` = 10%, `T08` = 8%) | Recomputing tax and rejecting unknown codes |
+| `POST /invoices` | `accounting_id` | Registering the invoice |
+
+The partner master and tax codes are cached for 60 seconds and refreshed on demand. If either cannot
+be read, the supplier check fails with the reason stated — an unreachable system or a rejected API
+key — rather than silently passing.
+
+Every response uses the assignment's envelope. A returned `error.code` is stored on the document with
+its HTTP status and shown to the reviewer.
+
+#### 2.4.2 Matching the supplier
+
+![Reference data panel](public/screenshots/06-accounting-reference.png)
+
+The partner master is shown next to the checks, with the matched row highlighted, so a reviewer can
+see what was matched against. Matching is tried in this order and stops at the first hit:
+
+1. **Registration number** (登録番号, `T` + 13 digits) against `registration_no`.
+2. **Partner code** against `partner_code`.
+3. **Printed supplier name** against `name` and `aliases`, after normalising full-width characters to
+   ASCII, removing whitespace, and case-folding. An exact match wins; otherwise a containment match
+   is accepted only when exactly one partner matches.
+
+On a match the master's `partner_code` replaces whatever was extracted, so the value sent onward is
+always the accounting system's own.
+
+#### 2.4.3 Using the tax codes
+
+The fetched rate table drives two things: any line carrying a code that is not in the table fails,
+and tax is recomputed as `floor(subtotal_for_code × rate)` per code — the same round-down rule the
+accounting system applies.
+
+#### 2.4.4 Registering
+
+The request is built from the document's fields. `quantity` and `unit_price` may be null; everything
+else must be present. A `201` returns an `accounting_id`; any error code is recorded and the document
+returns to the queue.
+
+### 2.5 Verification
+
+![All checks passed](public/screenshots/10-all-checks-passed.png)
+
+Seven checks run on every extraction and on every correction. All seven must pass before anything is
+sent onward.
 
 | # | Check | What it protects against |
 |---|---|---|
@@ -112,98 +165,72 @@ pass before anything is sent to the accounting system.
 | 2 | Tax matches the per-tax-code recalculation | Getting tax wrong on a mixed 10% / 8% invoice |
 | 3 | Subtotal plus tax equals the total | Arithmetic that does not hold internally |
 | 4 | The total matches the total printed on the page | A total invented by the model |
-| 5 | The supplier exists in the accounting supplier master | Registering to a partner that does not exist |
-| 6 | This invoice is not a duplicate | Paying the same invoice twice — the CEO's actual complaint |
+| 5 | The supplier exists in the partner master | Registering against a partner that does not exist |
+| 6 | This invoice is not a duplicate | Paying the same invoice twice |
 | 7 | All required fields are filled in | An outright rejection from the accounting system |
 
-Checks 1–3 deliberately reproduce the accounting system's own arithmetic, **including its
-round-down-per-tax-code rule**. If our numbers do not survive that calculation locally, the API would
-reject them anyway — so we never send them.
+Checks 1–3 reproduce the accounting system's own arithmetic locally, so numbers that would be
+rejected are never sent. Check 4 is the one aimed at AI error specifically: every other check can be
+satisfied by numbers that are internally consistent but simply not the ones on the paper.
 
-Check 4 is the one that catches AI error specifically. Every other check can be satisfied by a set of
-numbers that are internally consistent but simply not the ones on the paper. Comparing the computed
-total against the total printed on the page ties the extraction back to the document.
+When all seven pass, the invoice is registered automatically — no button, no confirmation.
 
-The supplier master and the accepted tax codes are read live from the accounting system, and shown
-next to the checks so a reviewer can see what was matched against:
+### 2.6 Blocked
 
-![Reference data from the accounting system](public/screenshots/06-accounting-reference.png)
+![Blocked tab](public/screenshots/04-blocked.png)
 
----
+A document that fails any check goes to **Blocked** and stops there. The tab shows the score at a
+glance, here `6/7`.
 
-## 6. When a check fails
-
-A document that fails any check goes to **Blocked** and stops there. It is never sent onward.
-
-![Blocked queue](public/screenshots/04-blocked.png)
-
-The queue tells you the score at a glance (`6/7`), and the detail screen tells you exactly which check
-failed, in plain language, with the numbers it used:
+#### 2.6.1 A failed check
 
 ![A failed check](public/screenshots/07-check-failed.png)
 
-Duplicates are caught before registration rather than after, by partner code plus invoice number, and
-the screen names the earlier document:
+Each check states its result, what it protects against, and the numbers it used. Failures are
+repeated under **Blocking registration**.
+
+#### 2.6.2 Duplicates
 
 ![Duplicate blocked](public/screenshots/08-duplicate-blocked.png)
 
----
+Duplicates are caught before registration, by partner code plus invoice number, and the earlier
+document is named.
 
-## 7. Human review and correction
+### 2.7 Review and revalidate
 
-Every extracted field is editable, side by side with the source page. The reviewer reads the paper on
-the left and fixes the data on the right — no switching windows.
+![Review screen](public/screenshots/05-review-and-edit.png)
 
-![Review and edit](public/screenshots/05-review-and-edit.png)
+The source page sits on the left and the extracted data on the right, so the reviewer reads the paper
+and fixes the data without switching windows.
 
-What is on this screen:
+| Area | Contents |
+|---|---|
+| Source page | The original PDF or image, zoomable, with a full-size link |
+| Invoice fields | Supplier, partner code, registration number, invoice number, dates, subtotal, tax, total, printed total |
+| Line items | Description, quantity, unit, unit price, amount and tax code per line; lines can be edited or removed |
+| Tokens used | Which model answered, and its input and output token counts |
 
-- **Source page** — the original PDF or image, zoomable, with an "open full size" link.
-- **Invoice fields** — supplier, partner code, registration number, invoice number, dates, subtotal,
-  tax, total, and the total printed on the page.
-- **Line items** — description, quantity, unit, unit price, amount, and tax code per line. Lines can
-  be edited or removed.
-- **Tokens used** — which model answered and how many input and output tokens it spent, so cost is
-  visible per document rather than estimated.
-- **Save & Revalidate** — writes the correction and re-runs all seven checks on the server. **Revert**
-  throws the edits away.
+**Save & Revalidate** writes the correction and re-runs all seven checks on the server. **Revert**
+discards the edits. Correcting a field never re-reads the document and never spends another token,
+and the document id is kept.
 
-Correcting a field never re-reads the document and never spends another token. The same document id is
-kept throughout, so history is not lost.
+The outcome is the same as a first read: all seven pass and it registers, or it returns to **Blocked**
+with the remaining failures listed.
 
----
+### 2.8 Registered
 
-## 8. Registration
+![Registered tab](public/screenshots/09-registered-list.png)
 
-When all seven checks pass, the invoice is registered automatically — no button, no confirmation
-step. The reviewer's job is only the exceptions.
+Registered documents show the `accounting_id` returned by the accounting system and the time it was
+accepted, and stay listed permanently.
 
-![All checks passed](public/screenshots/10-all-checks-passed.png)
-
-Registered invoices move to **Registered** and stay there permanently, showing the accounting id the
-accounting system gave back and the time it was accepted.
-
-![Registered list](public/screenshots/09-registered-list.png)
-
-Registration is one-way. The accounting system has no update and no single-record delete, so once an
-invoice is registered this app will not edit it, will not re-read it, and will not send it again. A
-lock around the registration step makes sure two workers cannot register the same document twice.
-
-If the accounting system refuses a record anyway, its error code and message are stored and shown on
-the document, and the document returns to the queue rather than disappearing.
+Registration is one-way. The accounting system has no update and no single-record delete, so a
+registered document cannot be edited, re-read, or sent again. A lock around the registration step
+prevents two workers registering the same document twice.
 
 ---
 
-## 9. Two languages
-
-The whole interface is English and Japanese, switchable in the header and remembered between visits.
-Every visible string comes from a single dictionary — there is no hard-coded text in any component.
-The invoices, the supplier names and the field labels stay in Japanese, because that is what is
-printed on the paper.
-
----
-
-## 10. Layout
+## 3. Project layout
 
 ```
 backend/
@@ -231,13 +258,5 @@ here modifies it.
 `frontend/dist/` is committed on purpose so the project runs without a Node toolchain. To rebuild it:
 `cd frontend && npm install && npm run build`.
 
----
-
-## 11. Notes and limits
-
-- **Restart is safe.** Documents left mid-read when the process stopped are picked up again at
-  startup.
-- **Scanned invoices are the weak point.** Free vision models misread digits on some scans. The
-  checks catch it, so nothing wrong reaches the accounting system, but those invoices need a human.
-  A stronger vision model is a one-line change in `.env`.
-- **Everything runs locally.** The only outbound calls are to the model provider you configured.
+The interface is English and Japanese, switchable in the header and remembered between visits. Every
+visible string comes from one dictionary; no component contains hard-coded text.
