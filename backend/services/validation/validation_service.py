@@ -40,7 +40,7 @@ class ValidationService:
         previous = stored.document
         partner, fields = self._reference_data.resolve_partner(fields)
         tax_table = self._reference_data.tax_table()
-        duplicate_of = self._repository.find_duplicate(
+        duplicate_of = self._repository.find_registered(
             fields.partner_code, fields.invoice_number, previous.document_id
         )
         outcomes = self._run_rules(fields, tax_table, partner is not None, duplicate_of)
