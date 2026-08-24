@@ -13,6 +13,20 @@ I do not think extraction is the problem worth solving. The sentence that matter
 
 So the problem I set out to solve is: **get invoices into the accounting system without ever putting a wrong one in.** Extraction is a component of that, not the goal. The centre of the build is the verification layer that decides which invoices a human ever has to look at. Speed is what is left over once correctness is guaranteed.
 
+Reading the twelve samples and the API reference before writing anything turned that into a short list of concrete problems. Every part of the build exists because of one of them.
+
+| The problem I found | What it produced |
+|---|---|
+| The client nearly paid one invoice twice, and the sample set contains the same trap: invoice_07 is a photograph of the same invoice as invoice_01, under a different name and file type | A duplicate check against invoices this app has already registered, run before anything is sent, repeated inside the registration lock, and backed by registering strictly one document at a time because the API's own duplicate check is not atomic under concurrency |
+| A wrong registration cannot be taken back. The API has no update call and no per-record delete | Nothing is sent until all seven checks pass. When a registration does have to come back, it is rebuilt from a full read, a full delete and a full replay, and it refuses outright if any live record cannot be matched to a document this app holds |
+| A model can return an invoice that is internally consistent and still wrong, by dropping a line or omitting a tax code | The cross-foot is tied to the total **printed on the page**, not to the model's own arithmetic. It is the only check that can see a row that was never extracted |
+| Some invoices cannot be registered however well they are read. invoice_10's supplier is genuinely absent from the partner master | Supplier matching against the live master, and a failure that names the real cause. That document needs supplier onboarding, not a better model, and the dashboard shows the reviewer exactly which suppliers are registerable |
+| Some source documents are themselves defective. invoice_09's printed total is one yen above its own line items | The system refuses to pick a side. It holds the document and shows both numbers rather than quietly paying either one |
+| The twelve files are not one kind of document. Three carry a text layer, eight are photographs, one is a PDF containing only a scan | Routing by inspecting the file rather than trusting its extension, so a machine-readable invoice is never rendered to an image and read back with a model |
+| Model endpoints fail often, and differently each time: quota exhaustion, timeouts, prose instead of schema | Ordered model chains that fall through on failure, and a document that exhausts every model is held with each model's failure reason on screen rather than half-filled |
+
+Everything below follows from that list.
+
 ## 2. What you would have asked the client
 
 | What you wanted to ask | The assumption you made | Why |
