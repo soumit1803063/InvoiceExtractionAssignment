@@ -16,15 +16,17 @@ irreversible step.
     - [2.3.3 If a model fails, the next one is tried](#233-if-a-model-fails-the-next-one-is-tried)
   - [2.4 The accounting system connection](#24-the-accounting-system-connection)
     - [2.4.1 What is fetched](#241-what-is-fetched)
-    - [2.4.2 Matching the supplier](#242-matching-the-supplier)
-    - [2.4.3 Using the tax codes](#243-using-the-tax-codes)
-    - [2.4.4 Registering](#244-registering)
+    - [2.4.2 The dashboard](#242-the-dashboard)
+    - [2.4.3 Matching the supplier](#243-matching-the-supplier)
+    - [2.4.4 Using the tax codes](#244-using-the-tax-codes)
+    - [2.4.5 Registering](#245-registering)
   - [2.5 Verification](#25-verification)
   - [2.6 Blocked](#26-blocked)
     - [2.6.1 A failed check](#261-a-failed-check)
     - [2.6.2 Duplicates](#262-duplicates)
   - [2.7 Review and revalidate](#27-review-and-revalidate)
   - [2.8 Registered](#28-registered)
+  - [2.9 Unregistering](#29-unregistering)
 - [3. Project layout](#3-project-layout)
 
 ---
@@ -37,6 +39,8 @@ Requires **Python 3.10 or newer. Nothing else.** No Node.js, no `pip install`, n
 python run.py
 ```
 
+![Starting the app with one command](public/screenshots/01-single-command-start.png)
+
 Then open <http://localhost:8000>.
 
 That one command creates a private virtual environment and installs the dependencies (first run only),
@@ -47,7 +51,7 @@ Create a `.env` file next to `run.py`:
 
 | Key | Purpose |
 |---|---|
-| `OPENROUTER_API_KEY` | The reader. Free models are used, so a free account is enough. |
+| `OPENROUTER_API_KEY` | The reader. Several models are configured, free ones included. |
 | `GEMINI_API_KEY` | Optional. Tried first, and used as the last resort when OpenRouter is rate-limited. |
 | `ACCOUNTING_API_KEY` | `demo-key-1234` — the key the assignment publishes. |
 
@@ -67,14 +71,14 @@ keeps the same process id from upload to registration.
 
 ### 2.2 Upload
 
-![Upload screen](public/screenshots/02-upload.png)
+![Upload screen](public/screenshots/03-upload.png)
 
 Accepts `.pdf`, `.jpg`, `.jpeg` and `.png`, several files at a time. Each file is copied into the
 invoices folder, given a process id, and queued. The upload returns immediately.
 
 ### 2.3 Reading
 
-![Reading tab](public/screenshots/03-reading.png)
+![Reading tab](public/screenshots/04-reading.png)
 
 The **Reading** tab lists documents currently being read. How a file is read depends on what it is.
 
@@ -105,8 +109,6 @@ both are shown on the review screen.
 
 ### 2.4 The accounting system connection
 
-![Header connection indicator](public/screenshots/01-accounting-reachable.png)
-
 The header shows whether the accounting system is answering. If it is not, nothing is registered —
 documents queue and wait.
 
@@ -121,6 +123,8 @@ server and reached over HTTP only, with `X-API-Key` on every call except `/healt
 | `GET /partners` | `partner_code`, `name`, `aliases`, `registration_no` | Matching the supplier printed on the invoice |
 | `GET /tax-codes` | `tax_code` and `rate` (`T10` = 10%, `T08` = 8%) | Recalculating tax and rejecting unknown codes |
 | `POST /invoices` | `accounting_id` | Registering the invoice |
+| `GET /invoices` | Everything the accounting system currently holds | Rebuilding the ledger when one document is unregistered |
+| `DELETE /invoices` | How many records were removed | The same rebuild — see [2.9](#29-unregistering) |
 
 The supplier master and the tax codes are re-fetched at most once a minute and reused in between. If
 either cannot be read, the supplier check **fails with the reason shown** — system unreachable, or API
@@ -129,12 +133,22 @@ key rejected — instead of quietly passing.
 When the accounting system returns an error, its code and HTTP status are stored on the document and
 shown on screen, rather than being swallowed.
 
-#### 2.4.2 Matching the supplier
+#### 2.4.2 The dashboard
 
-![Reference data panel](public/screenshots/06-accounting-reference.png)
+![Dashboard](public/screenshots/02-dashboard.png)
 
-The supplier master is shown next to the checks, with the matched row highlighted, so a reviewer can
-see what the invoice was matched against. Three ways are tried in order, stopping at the first hit:
+The **Dashboard** tab shows what the accounting system will accept: whether it is reachable, the full
+supplier master, and the tax code list with its rates. It is the answer to "why was this invoice
+blocked" in most cases — a supplier that is not on this page cannot be registered, and a tax code
+that is not on this page fails the check. Opening the page reads it from the accounting system, and
+**Refresh** reads it again — both through the one-minute cache above, so a change made in the
+accounting system shows up within a minute and without restarting anything.
+
+#### 2.4.3 Matching the supplier
+
+The supplier master is also shown next to the checks on the review screen, with the matched row
+highlighted, so a reviewer can see what the invoice was matched against. Three ways are tried in
+order, stopping at the first hit:
 
 1. **Registration number** (登録番号, a `T` followed by 13 digits) against `registration_no`. This is
    the most reliable, because it is a unique national identifier rather than a name.
@@ -146,13 +160,13 @@ see what the invoice was matched against. Three ways are tried in order, stoppin
 Once matched, the `partner_code` from the master replaces whatever was read off the page, so the
 value sent onward is always the accounting system's own.
 
-#### 2.4.3 Using the tax codes
+#### 2.4.4 Using the tax codes
 
 The rate table fetched from the API does two jobs: any line carrying a code that is not in the table
 fails, and tax is recalculated per code as `subtotal for that code × rate`, **rounded down** — the
 same rule the accounting system applies before it accepts anything.
 
-#### 2.4.4 Registering
+#### 2.4.5 Registering
 
 The request is built from the document's fields. `quantity` and `unit_price` may be empty; everything
 else must be filled in. Success returns an `accounting_id`. Any error is recorded on the document and
@@ -160,10 +174,10 @@ it goes back to the queue.
 
 ### 2.5 Verification
 
-![All checks passed](public/screenshots/10-all-checks-passed.png)
+![The seven checks](public/screenshots/09-duplicate-blocked.png)
 
 Seven checks run on every extraction and on every correction. All seven must pass before anything is
-sent onward.
+sent onward. Each one states its result, what it protects against, and the numbers it used.
 
 | # | Check | What it protects against |
 |---|---|---|
@@ -183,28 +197,26 @@ When all seven pass, the invoice is registered automatically — no button, no c
 
 ### 2.6 Blocked
 
-![Blocked tab](public/screenshots/04-blocked.png)
+![Blocked tab](public/screenshots/11-blocked-list.png)
 
 A document that fails any check goes to **Blocked** and stops there. The tab shows the score at a
-glance, here `6/7`.
+glance — `6/7` for a document with one failure, `1/7` for one the model barely read.
 
 #### 2.6.1 A failed check
 
-![A failed check](public/screenshots/07-check-failed.png)
-
-Each check states its result, what it protects against, and the numbers it used. Failures are
-repeated under **Blocking registration**.
+A failure is shown twice: once on the check itself, with the numbers behind it, and again under
+**Blocking registration** at the bottom, so the reviewer does not have to scan the whole panel to
+find out what is holding the document.
 
 #### 2.6.2 Duplicates
 
-![Duplicate blocked](public/screenshots/08-duplicate-blocked.png)
-
 Duplicates are caught before registration, by partner code plus invoice number, and the earlier
-document is named.
+document is named — as in the screenshot above, where a second copy of `invoice_01.pdf` passes every
+other check and is stopped by that one.
 
 ### 2.7 Review and revalidate
 
-![Review screen](public/screenshots/05-review-and-edit.png)
+![Review screen](public/screenshots/10-edit-and-revalidate.png)
 
 The source page sits on the left and the extracted data on the right, so the reviewer reads the paper
 and fixes the data without switching windows.
@@ -225,14 +237,38 @@ with the remaining failures listed.
 
 ### 2.8 Registered
 
-![Registered tab](public/screenshots/09-registered-list.png)
+![Registered tab](public/screenshots/06-registered-list.png)
 
 Registered documents show the `accounting_id` returned by the accounting system and the time it was
 accepted, and stay listed permanently.
 
-Registration is one-way. The accounting system has no update and no way to delete a single record, so
-a registered document cannot be edited, re-read, or sent again. The app also registers one document
-at a time, so the same invoice can never be sent twice by two things running at once.
+![A registered document](public/screenshots/05-registered-document.png)
+
+A registered document is read-only. Its fields cannot be edited, it is never re-read, and it is never
+sent again — the app registers one document at a time, so the same invoice can never be sent twice by
+two things running at once.
+
+### 2.9 Unregistering
+
+![Unregister](public/screenshots/07-unregister.png)
+
+Registration is close to one-way, and the app says so before doing anything. The accounting system
+has no update call and no way to delete a single record — the only removal it offers is
+`DELETE /invoices`, which clears everything. So **Unregister** does the only thing that endpoint
+allows: it reads back every invoice the accounting system holds, deletes them all, and registers the
+others again. The others keep their data but are given new accounting ids.
+
+That is destructive enough to be worth refusing when it is not safe. Before deleting anything, every
+record read back from the accounting system is matched to a document this app still holds. If even
+one record cannot be matched — something registered by another tool, or from a previous run of this
+app against the same live system — **nothing is deleted** and the reason names the invoice that could
+not be rebuilt.
+
+![After unregistering](public/screenshots/08-after-unregister.png)
+
+When it succeeds the document and its uploaded file are removed from this app, and the remaining
+registered documents are listed again with their new accounting ids. There is one confirmation step
+and it cannot be undone.
 
 ---
 
@@ -246,7 +282,7 @@ backend/
   core/                models, prompts, and the invoice knowledge given to the AI
   repositories/        saving documents (SQLite)
   services/
-    document_service.py     upload, background reading, registration
+    document_service.py     upload, background reading, registration, unregistration
     validation/             the seven checks
     accounting_service.py   talks to the accounting system over HTTP
     extraction/             orientation correction, text extraction, the model list
@@ -254,6 +290,8 @@ frontend/              review screen (React); dist/ is the built output the back
 public/
   storage/             the invoice files
   database/            the SQLite database
+  screenshots/         the images used in this README
+  diagrams/            the pipeline diagram
 run.py                 the single entry point
 accounting_api.py      the client's accounting system, verbatim from the assignment; not our code
 ```
