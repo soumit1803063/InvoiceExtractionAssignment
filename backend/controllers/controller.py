@@ -11,7 +11,6 @@ from ..core import (
     ResDocumentList,
     ResHealth,
     ResReferenceData,
-    ResStartOver,
     Utils,
 )
 from ..services.accounting_service import HttpAccountingGateway
@@ -51,12 +50,15 @@ def build_router(intake: InvoiceIntakeService, gateway: HttpAccountingGateway) -
     def scan_documents() -> ResDocumentList:
         return ResDocumentList(documents=intake.scan())
 
-    @router.delete("/documents", response_model=ResStartOver)
-    def start_over() -> ResStartOver:
+    @router.delete("/documents/{document_id}", response_model=ResDocumentList)
+    def unregister_document(document_id: str) -> ResDocumentList:
         try:
-            return intake.start_over()
+            remaining = intake.unregister(document_id)
         except IntakeError as error:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, error.message) from error
+        if remaining is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, ErrorMessage.DOCUMENT_NOT_FOUND)
+        return remaining
 
     @router.get("/documents", response_model=ResDocumentList)
     def list_documents() -> ResDocumentList:

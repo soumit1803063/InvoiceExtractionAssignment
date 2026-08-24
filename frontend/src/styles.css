@@ -1143,10 +1143,6 @@ select {
   margin: 0;
 }
 
-.queue-tabs__clear {
-  margin-left: auto;
-}
-
 .usage {
   display: flex;
   gap: 2rem;

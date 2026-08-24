@@ -35,12 +35,12 @@ from .requests import (
 )
 from .responses import (
     PartnerDirectory,
+    ResAccountingInvoice,
     ResDocumentList,
     ResHealth,
     ResPartner,
     ResReferenceData,
     ResRegistrationReceipt,
-    ResStartOver,
     ResTaxRate,
     TaxRateTable,
 )
@@ -68,12 +68,12 @@ __all__ = [
     "ReqFieldsUpdate",
     "ReqRegistration",
     "ReqRegistrationLine",
+    "ResAccountingInvoice",
     "ResDocumentList",
     "ResHealth",
     "ResPartner",
     "ResReferenceData",
     "ResRegistrationReceipt",
-    "ResStartOver",
     "ResTaxRate",
     "RuleCode",
     "TaxRateTable",

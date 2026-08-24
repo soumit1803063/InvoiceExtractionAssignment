@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { saveDocumentFields } from '../api/documents';
+import { saveDocumentFields, unregisterDocument } from '../api/documents';
 import { navigateTo } from '../hooks/useHashRoute';
 import {
   EDITABLE_DATE_FIELD_LABELS,
@@ -28,13 +28,22 @@ interface DocumentDetailProps {
   document: InvoiceDocument;
   duplicateSourceName: string | null;
   onDocumentUpdated: (updatedDocument: InvoiceDocument) => void;
+  onDocumentsReplaced: (documents: InvoiceDocument[]) => void;
 }
 
-export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdated }: DocumentDetailProps) {
+export function DocumentDetail({
+  document,
+  duplicateSourceName,
+  onDocumentUpdated,
+  onDocumentsReplaced
+}: DocumentDetailProps) {
   const [draft, setDraft] = useState<EditableInvoice>(() => toEditableInvoice(document.fields));
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [wasSaved, setWasSaved] = useState(false);
+  const [isConfirmingUnregister, setIsConfirmingUnregister] = useState(false);
+  const [isUnregistering, setIsUnregistering] = useState(false);
+  const [unregisterError, setUnregisterError] = useState<string | null>(null);
   const words = useWords();
 
   const isProcessing = document.status === 'processing';
@@ -91,6 +100,21 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
     }
   }
 
+  async function unregisterDraft() {
+    setIsUnregistering(true);
+    setUnregisterError(null);
+    try {
+      const remaining = await unregisterDocument(document.document_id);
+      onDocumentsReplaced(remaining.documents);
+      setIsConfirmingUnregister(false);
+      navigateTo('/logged');
+    } catch (cause) {
+      setUnregisterError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setIsUnregistering(false);
+    }
+  }
+
 
   return (
     <div className="detail">
@@ -105,7 +129,16 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
           </p>
         </div>
         <div className="detail__actions">
-          {isRegistered ? null : (
+          {isRegistered ? (
+            <button
+              type="button"
+              className="button button--danger"
+              onClick={() => setIsConfirmingUnregister(true)}
+              disabled={isUnregistering}
+            >
+              {isUnregistering ? words.unregistering : words.unregister}
+            </button>
+          ) : (
             <>
               {hasUnsavedChanges && !isReadOnly ? <span className="detail__dirty">{words.unsavedCorrections}</span> : null}
               <button type="button" className="button button--ghost" onClick={revertDraft} disabled={!hasUnsavedChanges || isSaving}>
@@ -118,6 +151,40 @@ export function DocumentDetail({ document, duplicateSourceName, onDocumentUpdate
           )}
         </div>
       </header>
+
+      {isConfirmingUnregister ? (
+        <MessageBanner
+          tone="warning"
+          title={words.unregisterConfirm}
+          action={
+            <>
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={() => setIsConfirmingUnregister(false)}
+              >
+                {words.cancel}
+              </button>
+              <button
+                type="button"
+                className="button button--danger"
+                onClick={unregisterDraft}
+                disabled={isUnregistering}
+              >
+                {isUnregistering ? words.unregistering : words.yesUnregister}
+              </button>
+            </>
+          }
+        >
+          <p>{words.unregisterExplained}</p>
+        </MessageBanner>
+      ) : null}
+
+      {unregisterError ? (
+        <MessageBanner tone="danger" title={words.unregisterFailed}>
+          <p>{unregisterError}</p>
+        </MessageBanner>
+      ) : null}
 
       {isProcessing ? (
         <MessageBanner tone="info" title={words.stillBeingRead}>

@@ -117,10 +117,12 @@ class DocumentRepository:
             ).first()
             return self._to_stored_document(row) if row else None
 
-    def delete_all(self) -> None:
+    def delete(self, document_id: str) -> None:
         with Session(self._engine) as session:
-            for row in session.exec(select(DbDocumentRow)).all():
-                session.delete(row)
+            row = session.get(DbDocumentRow, document_id)
+            if row is None:
+                return
+            session.delete(row)
             session.commit()
 
     def find_duplicate(

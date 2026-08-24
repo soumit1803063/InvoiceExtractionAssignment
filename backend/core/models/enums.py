@@ -17,6 +17,7 @@ class ErrorCode(StrEnum):
     STRUCTURING_FAILED = "STRUCTURING_FAILED"
     TRANSCRIPTION_FAILED = "TRANSCRIPTION_FAILED"
     UNAUTHORIZED = "UNAUTHORIZED"
+    UNREGISTER_UNSAFE = "UNREGISTER_UNSAFE"
 
 
 class ErrorMessage(StrEnum):
@@ -49,6 +50,11 @@ class ErrorMessage(StrEnum):
     )
     PARTNERS_UNREACHABLE = (
         "The accounting API could not be reached, so the partner master could not be read"
+    )
+
+    UNREGISTER_UNSAFE = (
+        "The accounting system holds invoice {invoice_number} for partner {partner_code}, "
+        "which this app cannot rebuild, so nothing was unregistered"
     )
 
     DOCUMENT_NOT_FOUND = "No document with that id"
