@@ -188,7 +188,7 @@ sent onward. Each one states its result, what it protects against, and the numbe
 | 3 | Subtotal plus tax equals the total | Arithmetic that does not hold internally |
 | 4 | The total matches the total printed on the page | A total invented by the model |
 | 5 | The supplier exists in the partner master | Registering against a partner that does not exist |
-| 6 | This invoice is not a duplicate | Paying the same invoice twice |
+| 6 | This invoice is not already registered | Paying the same invoice twice |
 | 7 | All required fields are filled in | An outright rejection from the accounting system |
 
 Checks 1 to 3 repeat the accounting system's own arithmetic here, so numbers it would reject are
@@ -212,9 +212,14 @@ find out what is holding the document.
 
 #### 2.6.2 Duplicates
 
-Duplicates are caught before registration, by partner code plus invoice number, and the earlier
-document is named. In the screenshot above a second copy of `invoice_01.pdf` passes every other check
-and is stopped by that one.
+Duplicates are caught before registration, by partner code plus invoice number, and the matching
+document is named. Only a document that is **already registered** counts. Two copies of the same
+invoice sitting in the queue do not block each other, because neither has reached the accounting
+system yet. In the screenshot above a second copy of `invoice_01.pdf` passes every other check and is
+stopped by that one, because the first copy is registered.
+
+The check is repeated inside the registration lock, immediately before the request is sent, so two
+copies that were verified at the same moment cannot both be registered.
 
 ### 2.7 Review and revalidate
 

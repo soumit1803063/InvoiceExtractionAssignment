@@ -101,7 +101,7 @@ class InvoiceIntakeService:
         for entry in gateway.fetch_registered_invoices():
             if entry.accounting_id == removed_accounting_id:
                 continue
-            owner_id = self._repository.find_duplicate(
+            owner_id = self._repository.find_registered(
                 entry.partner_code, entry.invoice_number, removed.document.document_id
             )
             owner = self._repository.get(owner_id) if owner_id else None
@@ -277,6 +277,11 @@ class InvoiceIntakeService:
             stored = self._repository.get(document.document_id)
             if stored is None or DocumentPolicy.is_registered(stored.document):
                 return document
+            fields = stored.document.fields
+            if self._repository.find_registered(
+                fields.partner_code, fields.invoice_number, document.document_id
+            ):
+                return self._rebuild_and_save(stored, fields, None)
             registration = self._send_registration(stored.document.fields)
             refusal = (
                 []

@@ -23,7 +23,9 @@ class ErrorCode(StrEnum):
 class ErrorMessage(StrEnum):
     CROSSFOOT = "Line amounts do not add up to the printed subtotal"
     DATE_ORDER = "Due date {due_date} is earlier than issue date {issue_date}"
-    DUPLICATE = "Same partner and invoice number were already read from document {document_id}"
+    DUPLICATE = (
+        "Same partner and invoice number are already registered from document {document_id}"
+    )
     MISSING_REQUIRED_FIELDS = "Missing required fields: {names}"
     MISSING_TAX_CODE = "Missing tax code on: {names}"
     PARTNER_NOT_IN_MASTER = (

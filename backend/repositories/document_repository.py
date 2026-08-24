@@ -10,6 +10,7 @@ from ..core import (
     DbDocument,
     DbDocumentRow,
     DbStoredDocument,
+    DocumentStatus,
     Utils,
 )
 
@@ -125,7 +126,7 @@ class DocumentRepository:
             session.delete(row)
             session.commit()
 
-    def find_duplicate(
+    def find_registered(
         self, partner_code: Optional[str], invoice_number: Optional[str], exclude_document_id: Optional[str]
     ) -> Optional[str]:
         if not partner_code or not invoice_number:
@@ -135,6 +136,7 @@ class DocumentRepository:
                 select(DbDocumentRow)
                 .where(DbDocumentRow.partner_code == partner_code)
                 .where(DbDocumentRow.invoice_number == invoice_number)
+                .where(DbDocumentRow.status == DocumentStatus.REGISTERED)
                 .where(DbDocumentRow.document_id != (exclude_document_id or ""))
                 .order_by(DbDocumentRow.created_at)
             ).first()
