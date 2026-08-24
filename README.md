@@ -85,8 +85,8 @@ The **Reading** tab lists documents currently being read. How a file is read dep
 #### 2.3.1 PDF that already contains text
 
 Some PDFs carry real, selectable text inside the file. That text is pulled out directly. No image, no
-OCR. An AI model then turns it into the invoice fields. Under a second per document, and no image is
-ever sent to a model.
+OCR. An AI model then turns it into the invoice fields. Pulling the text out takes well under a
+second. The model call after it is what takes the time. No image is ever sent to a model.
 
 #### 2.3.2 Scan, photo, or image-only PDF
 
@@ -98,7 +98,9 @@ upright, because a model reads a crooked page badly. The turn is an exact quarte
 pixel is altered or blurred. It uses Tesseract, a free OCR tool, if it is installed on the machine.
 Without it pages are passed through untouched and everything else still works.
 
-Roughly half a minute per page.
+About half a minute per page once a model answers. When models earlier in the chain time out first,
+the whole document takes longer. On the twelve sample invoices the images averaged just under four
+minutes each, and most of that was spent waiting for a timeout rather than reading.
 
 #### 2.3.3 If a model fails, the next one is tried
 
