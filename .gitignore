@@ -1,0 +1,24 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# node
+node_modules/
+*.tsbuildinfo
+dist/*.map
+
+# runtime data, created on first run
+public/storage/
+public/database/
+*.sqlite3
+*.log
+
+# editors and os
+.vscode/
+.idea/
+.DS_Store
